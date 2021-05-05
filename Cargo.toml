@@ -7,3 +7,16 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.40"
+bzip2 = "0.4.2"
+env_logger = "0.8.3"
+log = "0.4.14"
+pgn-reader = "0.18.0"
+prost = "0.7.0"
+prost-types = "0.7.0"
+reqwest = { version = "0.11.3", default-features = false, features = ["blocking", "rustls-tls"] }
+tonic = "0.4.3"
+tonic-types = "0.2.0"
+
+[build-dependencies]
+tonic-build = "0.4.2"

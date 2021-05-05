@@ -1,0 +1,43 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package chess_erdos;
+
+message User {
+  string id = 1;
+  uint32 erdos_number = 2;
+  repeated ErdosLink erdos_links = 3;
+}
+
+message ErdosLink {
+  uint32 erdos_number = 1;
+  google.protobuf.Timestamp time = 2;
+  GameInfo game_info = 3;
+}
+
+message GameInfo {
+  PlayerInfo winner = 1;
+  PlayerInfo loser = 2;
+  GameMode game_mode = 3;
+  uint32 moves = 4;
+  WinType win_type = 5;
+}
+
+message PlayerInfo {
+  string id = 1;
+  string title = 2;
+  uint32 elo = 3;
+  sint32 eloDiff = 4;
+}
+
+enum GameMode {
+  BLITZ = 0;
+  RAPID = 1;
+  CLASSICAL = 2;
+}
+
+enum WinType {
+  MATE = 0;
+  TIMEOUT = 1;
+  RESIGN = 2;
+}
