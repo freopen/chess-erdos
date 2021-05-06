@@ -16,28 +16,28 @@ message ErdosLink {
 }
 
 message GameInfo {
-  PlayerInfo winner = 1;
-  PlayerInfo loser = 2;
-  GameMode game_mode = 3;
-  uint32 moves = 4;
-  WinType win_type = 5;
+  string game_id = 1;
+  PlayerInfo winner = 2;
+  PlayerInfo loser = 3;
+  string time_control = 4;
+  uint32 moves = 5;
+  WinType win_type = 6;
+  bool winner_is_white = 7;
 }
 
 message PlayerInfo {
   string id = 1;
   string title = 2;
-  uint32 elo = 3;
-  sint32 eloDiff = 4;
-}
-
-enum GameMode {
-  BLITZ = 0;
-  RAPID = 1;
-  CLASSICAL = 2;
+  uint32 rating = 3;
+  sint32 rating_diff = 4;
 }
 
 enum WinType {
   MATE = 0;
   TIMEOUT = 1;
   RESIGN = 2;
+}
+
+message UserUpdate {
+  oneof update { ErdosLink new_erdos_link = 1; }
 }
