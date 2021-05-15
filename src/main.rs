@@ -1,3 +1,5 @@
+mod db;
+
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
@@ -141,7 +143,7 @@ impl Visitor for GameParser {
 
     fn end_game(&mut self) -> Self::Result {
         if !self.skip && self.erdos_link.game_info.as_ref().unwrap().moves >= 20 {
-            info!("Found game: {:?}", self.erdos_link);
+            
         }
     }
 }
