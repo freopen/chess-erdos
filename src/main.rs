@@ -6,11 +6,13 @@ use std::convert::TryFrom;
 use anyhow::{bail, ensure, Context, Result};
 use bzip2::read::MultiBzDecoder;
 use chrono::NaiveDateTime;
-use log::{debug, info};
+use log::debug;
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use prost_types::Timestamp;
 use reqwest::blocking::get;
 use shakmaty::san::Suffix;
+
+use crate::db::DB_USERS;
 
 mod proto {
     tonic::include_proto!("chess_erdos");
@@ -21,6 +23,22 @@ struct GameParser {
     erdos_link: proto::ErdosLink,
     headers: HashMap<String, String>,
     skip: bool,
+}
+
+fn get_erdos_number(id: &String) -> Result<u32> {
+    if let Some(user) = DB_USERS.get(id)? {
+        Ok(user.erdos_number)
+    } else {
+        DB_USERS.put(
+            id,
+            &proto::User {
+                id: id.clone(),
+                erdos_number: 1000000,
+                erdos_links: vec![],
+            },
+        )?;
+        Ok(1000000)
+    }
 }
 
 impl Visitor for GameParser {
@@ -44,21 +62,26 @@ impl Visitor for GameParser {
             fn extract_player_info(
                 color: &str,
                 headers: &mut HashMap<String, String>,
-            ) -> Result<proto::PlayerInfo> {
-                Ok(proto::PlayerInfo {
-                    id: headers.remove(color).context("No id")?,
-                    title: headers
-                        .remove(&format!("{}Title", color))
-                        .unwrap_or_default(),
-                    rating: headers
-                        .remove(&format!("{}Elo", color))
-                        .context("No Elo")?
-                        .parse()?,
-                    rating_diff: headers
-                        .remove(&format!("{}RatingDiff", color))
-                        .context("No RatingDiff")?
-                        .parse()?,
-                })
+            ) -> Result<(proto::PlayerInfo, u32)> {
+                let id = headers.remove(color).context("No id")?;
+                let erdos_number = get_erdos_number(&id)?;
+                Ok((
+                    proto::PlayerInfo {
+                        id,
+                        title: headers
+                            .remove(&format!("{}Title", color))
+                            .unwrap_or_default(),
+                        rating: headers
+                            .remove(&format!("{}Elo", color))
+                            .context("No Elo")?
+                            .parse()?,
+                        rating_diff: headers
+                            .remove(&format!("{}RatingDiff", color))
+                            .context("No RatingDiff")?
+                            .parse()?,
+                    },
+                    erdos_number,
+                ))
             }
             let event = headers.remove("Event").context("No Event")?;
             ensure!(
@@ -73,6 +96,13 @@ impl Visitor for GameParser {
                 Some("0-1") => ("Black", "White"),
                 _ => bail!("Uninteresting result"),
             };
+            let (winner, winner_erdos_number) = extract_player_info(winner_color, headers)?;
+            let (loser, loser_erdos_number) = extract_player_info(loser_color, headers)?;
+            ensure!(
+                winner_erdos_number > loser_erdos_number + 1,
+                "Winner Erdos number is not improving"
+            );
+
             let time = NaiveDateTime::parse_from_str(
                 &format!(
                     "{} {}",
@@ -83,7 +113,7 @@ impl Visitor for GameParser {
             )
             .context("Timestamp parse failed")?;
             Ok(proto::ErdosLink {
-                erdos_number: 0,
+                erdos_number: loser_erdos_number + 1,
                 time: Some(Timestamp {
                     seconds: time.timestamp(),
                     nanos: i32::try_from(time.timestamp_subsec_nanos())?,
@@ -95,8 +125,8 @@ impl Visitor for GameParser {
                         .strip_prefix("https://lichess.org/")
                         .context("Unexpected prefix")?
                         .to_string(),
-                    winner: Some(extract_player_info(winner_color, headers)?),
-                    loser: Some(extract_player_info(loser_color, headers)?),
+                    winner: Some(winner),
+                    loser: Some(loser),
                     time_control: headers.remove("TimeControl").context("No TimeControl")?,
                     moves: 0,
                     win_type: match headers
@@ -113,6 +143,7 @@ impl Visitor for GameParser {
                 }),
             })
         }
+
         match headers_to_erdos_link(&mut self.headers) {
             Ok(erdos_link) => {
                 self.erdos_link = erdos_link;
@@ -143,7 +174,24 @@ impl Visitor for GameParser {
 
     fn end_game(&mut self) -> Self::Result {
         if !self.skip && self.erdos_link.game_info.as_ref().unwrap().moves >= 20 {
-            
+            DB_USERS
+                .merge(
+                    self.erdos_link
+                        .game_info
+                        .as_ref()
+                        .unwrap()
+                        .winner
+                        .as_ref()
+                        .unwrap()
+                        .id
+                        .clone(),
+                    proto::UserUpdate {
+                        update: Some(proto::user_update::Update::NewErdosLink(
+                            self.erdos_link.clone(),
+                        )),
+                    },
+                )
+                .unwrap();
         }
     }
 }
@@ -159,6 +207,16 @@ fn process_archive(url: &str) -> Result<()> {
 
 fn main() {
     env_logger::init();
+    DB_USERS
+        .put(
+            "alexandros13",
+            &proto::User {
+                id: "alexandros13".into(),
+                erdos_number: 0,
+                erdos_links: vec![],
+            },
+        )
+        .unwrap();
     process_archive(
         "https://database.lichess.org/standard/lichess_db_standard_rated_2014-07.pgn.bz2",
     )

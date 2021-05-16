@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use anyhow::{Context, Result, ensure};
 use lazy_static::lazy_static;
 use prost::Message;
-use rocksdb::{ColumnFamily, ColumnFamilyDescriptor, MergeOperands, Options};
+use rocksdb::{ColumnFamilyDescriptor, MergeOperands, Options};
 
 use crate::proto;
 
