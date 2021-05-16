@@ -10,4 +10,4 @@
 
 # Perf metrics
 /flamegraph.svg
-/perf.data
+/perf.data*
