@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::{bail, ensure, Context, Result};
 use bzip2::read::MultiBzDecoder;
@@ -9,6 +9,7 @@ use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use prost_types::Timestamp;
 use reqwest::blocking::get;
 use shakmaty::san::Suffix;
+use tokio::{task::spawn_blocking, time::sleep};
 
 use crate::proto::{
     user_update::Update::NewErdosLink, ErdosLink, GameInfo, PlayerInfo, User, WinType,
@@ -212,7 +213,7 @@ fn process_archive(url: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn process_new_archives() -> Result<()> {
+fn process_new_archives() -> Result<()> {
     info!("Processing new archives");
     let last_archive = String::from_utf8(DB.get("last_processed_archive")?.unwrap_or_default())?;
     let lichess_archives: Vec<String> = get(LICHESS_DB_LIST)?
@@ -230,4 +231,11 @@ pub fn process_new_archives() -> Result<()> {
         info!("Archive url processed: {}", &archive);
     }
     Ok(())
+}
+
+pub async fn process_new_archives_task() -> Result<()> {
+    loop {
+        spawn_blocking(process_new_archives).await??;
+        sleep(Duration::from_secs(60 * 60)).await;
+    }
 }

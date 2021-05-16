@@ -41,3 +41,20 @@ enum WinType {
 message UserUpdate {
   oneof update { ErdosLink new_erdos_link = 1; }
 }
+
+service ChessErdosService {
+  rpc GetErdosLinks (GetErdosLinksRequest) returns (GetErdosLinksResponse);
+}
+
+message GetErdosLinksRequest {
+  string user_id = 1;
+}
+
+message ErdosChain {
+  repeated ErdosLink erdos_links = 1;
+}
+
+message GetErdosLinksResponse {
+  string user_id = 1;
+  repeated ErdosChain erdos_chains = 2;
+}

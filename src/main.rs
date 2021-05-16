@@ -1,16 +1,21 @@
 mod db;
+mod grpc;
 mod process_archive;
+
+use tokio::try_join;
 
 use crate::{
     db::DB_USERS,
-    process_archive::{process_new_archives, ERDOS_ID},
+    grpc::tonic_server_task,
+    process_archive::{process_new_archives_task, ERDOS_ID},
 };
 
 mod proto {
     tonic::include_proto!("chess_erdos");
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::init();
     DB_USERS
         .put(
@@ -22,5 +27,5 @@ fn main() {
             },
         )
         .unwrap();
-    process_new_archives().unwrap();
+    try_join!(process_new_archives_task(), tonic_server_task()).unwrap();
 }
