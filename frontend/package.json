@@ -7,15 +7,19 @@
   "private": true,
   "scripts": {
     "lint": "eslint --ext .js,.ts,.vue ./",
+    "protoc": "protoc --ts_out ./src/proto --ts_opt long_type_number --proto_path ../proto ../proto/service.proto",
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@protobuf-ts/grpcweb-transport": "^2.0.0-alpha.24",
+    "@protobuf-ts/runtime": "^2.0.0-alpha.24",
     "@quasar/extras": "^1.0.0",
     "core-js": "^3.6.5",
     "quasar": "^2.0.0-beta.1"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.13.14",
+    "@protobuf-ts/plugin": "^2.0.0-alpha.24",
     "@quasar/app": "^3.0.0-beta.1",
     "@types/node": "^10.17.15",
     "@typescript-eslint/eslint-plugin": "^4.16.1",

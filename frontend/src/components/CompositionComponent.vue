@@ -13,6 +13,7 @@
     <p>Count: {{ todoCount }} / {{ meta.totalCount }}</p>
     <p>Active: {{ active ? 'yes' : 'no' }}</p>
     <p>Clicks on todos: {{ clickCount }}</p>
+    <p>{{ proto }}</p>
   </div>
 </template>
 
@@ -25,6 +26,7 @@ import {
   toRef,
   Ref,
 } from 'vue';
+import grpc from '../lib/grpc';
 import { Todo, Meta } from './models';
 
 function useClickCount() {
@@ -33,8 +35,12 @@ function useClickCount() {
     clickCount.value += 1;
     return clickCount.value;
   }
-
-  return { clickCount, increment };
+  const proto = ref('');
+  void (async () => {
+    const { response } = await grpc.getErdosLinks({ userId: 'aad11' });
+    proto.value = JSON.stringify(response);
+  })();
+  return { clickCount, increment, proto };
 }
 
 function useDisplayTodo(todos: Ref<Todo[]>) {
