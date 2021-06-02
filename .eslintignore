@@ -7,4 +7,4 @@
 .eslintrc.js
 babel.config.js
 /src-ssr
-/src/proto/
+/src/grpc/service.*

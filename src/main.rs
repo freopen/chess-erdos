@@ -1,15 +1,9 @@
 #![feature(destructuring_assignment)]
-mod db;
-mod grpc;
-mod process_archive;
+mod server;
 
 use tokio::try_join;
 
-use crate::{grpc::tonic_server_task, process_archive::process_new_archives_task};
-
-mod proto {
-    tonic::include_proto!("chess_erdos");
-}
+use crate::server::{db, grpc::tonic_server_task, process_archive::process_new_archives_task};
 
 #[tokio::main]
 async fn main() {

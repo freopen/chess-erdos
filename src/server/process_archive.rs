@@ -12,7 +12,7 @@ use reqwest::blocking::get;
 use shakmaty::san::Suffix;
 use tokio::{task::spawn_blocking, time::sleep};
 
-use crate::{
+use crate::server::{
     db::{ENV, META, USERS},
     proto::{ErdosLink, Meta, User, WinType},
 };

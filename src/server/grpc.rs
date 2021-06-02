@@ -3,7 +3,7 @@ use heed::RoTxn;
 use tonic::{transport::Server, Status};
 use tonic::{Request, Response};
 
-use crate::{
+use crate::server::{
     db::{ENV, USERS},
     proto::{
         chess_erdos_service_server::{ChessErdosService, ChessErdosServiceServer},

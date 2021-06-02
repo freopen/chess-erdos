@@ -7,7 +7,7 @@ use heed::{
 use lazy_static::{initialize, lazy_static};
 use prost::Message;
 
-use crate::proto::{Meta, User};
+use crate::server::proto::{Meta, User};
 
 pub struct Proto<T: Message>(PhantomData<T>);
 

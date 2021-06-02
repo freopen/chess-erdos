@@ -26,7 +26,7 @@ import {
   toRef,
   Ref,
 } from 'vue';
-import grpc from '../lib/grpc';
+import grpc from '../grpc';
 import { Todo, Meta } from './models';
 
 function useClickCount() {
