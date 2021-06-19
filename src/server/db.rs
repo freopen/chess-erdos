@@ -1,50 +1,107 @@
-use std::{borrow::Cow, marker::PhantomData};
+use chrono::{DateTime, TimeZone, Utc};
+use lazy_static::lazy_static;
+use mongodb::{Client, Collection, Database};
+use serde::{Deserialize, Serialize};
 
-use heed::{
-    types::{Str, Unit},
-    BytesDecode, BytesEncode, Database, Env, EnvOpenOptions,
-};
-use lazy_static::{initialize, lazy_static};
-use prost::Message;
-
-use crate::server::proto::{Meta, User};
-
-pub struct Proto<T: Message>(PhantomData<T>);
-
-impl<'a, T: Message + 'a> BytesEncode<'a> for Proto<T> {
-    type EItem = T;
-
-    fn bytes_encode(
-        item: &'a Self::EItem,
-    ) -> core::result::Result<Cow<'a, [u8]>, Box<dyn std::error::Error>> {
-        let mut bytes = Vec::with_capacity(item.encoded_len());
-        item.encode(&mut bytes)?;
-        Ok(bytes.into())
-    }
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Meta {
+  pub last_processed_archive: String,
 }
 
-impl<'a, T: Message + Default + 'a> BytesDecode<'a> for Proto<T> {
-    type DItem = T;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
+  pub _id: String,
+  pub first_game_time: DateTime<Utc>,
+  pub erdos_number: i32,
+  pub erdos_links: Vec<ErdosLink>,
+}
 
-    fn bytes_decode(
-        bytes: &'a [u8],
-    ) -> core::result::Result<Self::DItem, Box<dyn std::error::Error>> {
-        Ok(T::decode(bytes)?)
+impl Default for User {
+  fn default() -> Self {
+    User {
+      _id: String::new(),
+      first_game_time: Utc.timestamp(0, 0),
+      erdos_number: 0,
+      erdos_links: vec![],
     }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErdosLink {
+  pub erdos_number: i32,
+  pub time: DateTime<Utc>,
+  pub loser_id: String,
+  pub game_info: GameInfo,
+  pub winner_info: PlayerInfo,
+  pub loser_info: PlayerInfo,
+}
+
+impl Default for ErdosLink {
+  fn default() -> Self {
+    ErdosLink {
+      erdos_number: 0,
+      time: Utc.timestamp(0, 0),
+      loser_id: String::new(),
+      game_info: GameInfo::default(),
+      winner_info: PlayerInfo::default(),
+      loser_info: PlayerInfo::default(),
+    }
+  }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct GameInfo {
+  pub id: String,
+  pub time_control: TimeControl,
+  pub win_type: WinType,
+  pub moves_count: i32,
+  pub winner_is_white: bool,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct PlayerInfo {
+  pub title: Option<String>,
+  pub rating: i32,
+  pub rating_diff: i32,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct TimeControl {
+  pub category: TimeControlCategory,
+  pub main: i32,
+  pub increment: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TimeControlCategory {
+  Blitz,
+  Rapid,
+  Classical,
+}
+
+impl Default for TimeControlCategory {
+  fn default() -> Self {
+    TimeControlCategory::Blitz
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum WinType {
+  Mate,
+  Timeout,
+  Resign,
+}
+
+impl Default for WinType {
+  fn default() -> Self {
+    WinType::Mate
+  }
 }
 
 lazy_static! {
-    pub static ref ENV: Env = EnvOpenOptions::new()
-        .max_dbs(2)
-        .map_size(10 * 1024 * 1024 * 1024)
-        .open("db")
-        .unwrap();
-    pub static ref META: Database<Unit, Proto<Meta>> = ENV.create_database(Some("meta")).unwrap();
-    pub static ref USERS: Database<Str, Proto<User>> = ENV.create_database(Some("users")).unwrap();
-}
-
-pub fn init_db() {
-    initialize(&ENV);
-    initialize(&META);
-    initialize(&USERS);
+  pub static ref MONGO: Client = Client::with_options(Default::default()).unwrap();
+  pub static ref DB: Database = MONGO.database("chess-erdos");
+  pub static ref USERS: Collection<User> = DB.collection("users");
+  pub static ref META: Collection<Meta> = DB.collection("meta");
 }

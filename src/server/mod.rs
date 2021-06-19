@@ -1,6 +1,8 @@
-pub(crate) mod db;
-pub(crate) mod grpc;
-pub(crate) mod process_archive;
-pub(crate) mod proto {
-    tonic::include_proto!("chess_erdos");
+mod db;
+mod process_archive;
+
+use anyhow::Result;
+
+pub async fn serve() -> Result<()> {
+  process_archive::process_new_archives_task().await
 }
