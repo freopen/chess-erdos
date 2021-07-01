@@ -1,6 +1,6 @@
 mod server;
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() {
   env_logger::init();
   server::serve().await.unwrap();

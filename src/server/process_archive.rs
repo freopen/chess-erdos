@@ -233,7 +233,7 @@ impl Visitor for GameParser {
           .into_iter()
           .find(|erdos_link| erdos_link.time < self.erdos_link.time)
           .map(|erdos_link| erdos_link.erdos_number)
-          .unwrap()
+          .unwrap_or(ERDOS_NUMBER_INF)
       };
       if winner.erdos_number > loser_erdos_number + 1 {
         self.erdos_link.erdos_number = loser_erdos_number + 1;
