@@ -1,13 +1,15 @@
-mod db;
+mod data;
 mod http;
 mod process_archive;
 
 use anyhow::Result;
-use tokio::spawn;
+use tokio::select;
 
 pub async fn serve() -> Result<()> {
-  // let process_new_archives_task = spawn(process_archive::process_new_archives_task());
-  http::http_server_task().await?;
-  // process_new_archives_task.abort();
+  let db = data::Db::new()?;
+  select! {
+    res = process_archive::process_new_archives_task(db.clone()) => res?,
+    res = http::http_server_task(db.clone()) => res?
+  }
   Ok(())
 }

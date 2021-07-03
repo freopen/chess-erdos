@@ -3,5 +3,7 @@ mod server;
 #[actix_web::main]
 async fn main() {
   env_logger::init();
-  server::serve().await.unwrap();
+  if let Err(error) = server::serve().await {
+    panic!("{:#?}", error);
+  }
 }

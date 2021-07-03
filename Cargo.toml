@@ -5,19 +5,20 @@ authors = ["Aleksei Zolotov <freopen@freopen.org>"]
 edition = "2018"
 
 [dependencies]
+actix-cors = "0.6.0-beta.2"
 actix-web = "4.0.0-beta.8"
 anyhow = "1.0.41"
-async-graphql = { git="https://github.com/async-graphql/async-graphql.git", branch="actix-web-v4-beta" }
+async-graphql = { git="https://github.com/async-graphql/async-graphql.git", branch="actix-web-v4-beta", features=["chrono", "apollo_tracing", "log"] }
 async-graphql-actix-web = { git="https://github.com/async-graphql/async-graphql.git", branch="actix-web-v4-beta" }
-chrono = { version="0.4.19", features=["serde"] }
+chrono = { version = "0.4.19", features = ["serde"] }
+derivative = "2.2.0"
 env_logger = "0.8.4"
 futures = "0.3.15"
-lazy_static = "1.4.0"
 log = "0.4.14"
-mongodb = "2.0.0-beta.1"
+mongodb = "2.0.0-beta.2"
 pgn-reader = "0.18.0"
-reqwest = { version="0.11.3", default-features=false, features=["rustls-tls"] }
-serde = { version="1.0.126", features=["derive"] }
+reqwest = { version = "0.11.4", default-features = false, features = ["rustls-tls"] }
+serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 shakmaty = "0.19.0"
-tokio = { version="1.7.0", features=["full"] }
+tokio = { version = "1.8.0", features = ["full"] }

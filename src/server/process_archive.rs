@@ -11,9 +11,7 @@ use reqwest::get;
 use shakmaty::san::Suffix;
 use tokio::{task::spawn_blocking, time::sleep};
 
-use crate::server::db::{Meta, TimeControlCategory, User};
-
-use super::db::{ErdosLink, PlayerInfo, WinType, META, USERS};
+use super::data::{Db, ErdosLink, Meta, PlayerInfo, TimeControlType, User, WinType};
 
 const ERDOS_NUMBER_INF: i32 = i32::MAX - 1;
 const ERDOS_ID: &str = "gorizav"; //"DrNykterstein";
@@ -26,10 +24,11 @@ struct GameParser {
   headers: HashMap<String, String>,
   skip: bool,
   users_cache: HashMap<String, i32>,
+  db: Db,
 }
 
-impl Default for GameParser {
-  fn default() -> Self {
+impl GameParser {
+  fn new(db: Db) -> Self {
     let mut users_cache = HashMap::new();
     users_cache.insert("?".to_string(), ERDOS_NUMBER_INF);
     users_cache.insert(ERDOS_ID.to_string(), 0);
@@ -39,6 +38,7 @@ impl Default for GameParser {
       headers: HashMap::new(),
       skip: false,
       users_cache,
+      db,
     }
   }
 }
@@ -47,12 +47,12 @@ impl GameParser {
   fn get_latest_erdos_number(&mut self, id: &str) -> i32 {
     if let Some(erdos_number) = self.users_cache.get(id) {
       *erdos_number
-    } else if let Some(user) = block_on(USERS.find_one(doc! {"_id": &id}, None)).unwrap() {
+    } else if let Some(user) = block_on(self.db.users.find_one(doc! {"_id": &id}, None)).unwrap() {
       self.users_cache.insert(id.to_string(), user.erdos_number);
       user.erdos_number
     } else {
       block_on(
-        USERS.insert_one(
+        self.db.users.insert_one(
           User {
             _id: id.to_string(),
             erdos_number: ERDOS_NUMBER_INF,
@@ -113,11 +113,11 @@ impl GameParser {
     let event = self.headers.remove("Event").unwrap();
     let without_rated = event.strip_prefix("Rated ")?;
     if without_rated.starts_with("Blitz ") {
-      self.erdos_link.game_info.time_control.category = TimeControlCategory::Blitz;
+      self.erdos_link.time_control_type = TimeControlType::Blitz;
     } else if without_rated.starts_with("Rapid ") {
-      self.erdos_link.game_info.time_control.category = TimeControlCategory::Rapid;
+      self.erdos_link.time_control_type = TimeControlType::Rapid;
     } else if without_rated.starts_with("Classical ") {
-      self.erdos_link.game_info.time_control.category = TimeControlCategory::Classical;
+      self.erdos_link.time_control_type = TimeControlType::Classical;
     } else {
       return None;
     }
@@ -127,7 +127,7 @@ impl GameParser {
         if white_erdos_number <= black_erdos_number + 1 {
           return None;
         }
-        self.erdos_link.game_info.winner_is_white = true;
+        self.erdos_link.winner_is_white = true;
         self.user_id = white;
         self.erdos_link.loser_id = black;
       }
@@ -135,7 +135,7 @@ impl GameParser {
         if black_erdos_number <= white_erdos_number + 1 {
           return None;
         }
-        self.erdos_link.game_info.winner_is_white = false;
+        self.erdos_link.winner_is_white = false;
         self.user_id = black;
         self.erdos_link.loser_id = white;
       }
@@ -144,13 +144,10 @@ impl GameParser {
       }
     };
 
-    self.erdos_link.winner_info =
-      self.parse_user_data(self.erdos_link.game_info.winner_is_white)?;
-    self.erdos_link.loser_info =
-      self.parse_user_data(!self.erdos_link.game_info.winner_is_white)?;
+    self.erdos_link.winner_info = self.parse_user_data(self.erdos_link.winner_is_white)?;
+    self.erdos_link.loser_info = self.parse_user_data(!self.erdos_link.winner_is_white)?;
 
-    self.erdos_link.game_info.win_type = match self.headers.remove("Termination").unwrap().as_str()
-    {
+    self.erdos_link.win_type = match self.headers.remove("Termination").unwrap().as_str() {
       "Normal" => WinType::Resign,
       "Time forfeit" => WinType::Timeout,
       _ => return None,
@@ -167,7 +164,7 @@ impl GameParser {
       )
       .unwrap();
 
-    self.erdos_link.game_info.id = self
+    self.erdos_link.game_id = self
       .headers
       .remove("Site")
       .unwrap()
@@ -177,10 +174,10 @@ impl GameParser {
 
     let time_control_str = self.headers.remove("TimeControl").unwrap();
     let (main_str, increment_str) = time_control_str.split_once('+').unwrap();
-    self.erdos_link.game_info.time_control.main = main_str.parse().unwrap();
-    self.erdos_link.game_info.time_control.increment = increment_str.parse().unwrap();
+    self.erdos_link.time_control_main = main_str.parse().unwrap();
+    self.erdos_link.time_control_increment = increment_str.parse().unwrap();
 
-    self.erdos_link.game_info.moves_count = 0;
+    self.erdos_link.moves_count = 0;
 
     Some(())
   }
@@ -207,9 +204,9 @@ impl Visitor for GameParser {
   }
 
   fn san(&mut self, san: SanPlus) {
-    self.erdos_link.game_info.moves_count += 1;
+    self.erdos_link.moves_count += 1;
     if san.suffix == Some(Suffix::Checkmate) {
-      self.erdos_link.game_info.win_type = WinType::Mate;
+      self.erdos_link.win_type = WinType::Mate;
     }
   }
 
@@ -218,13 +215,18 @@ impl Visitor for GameParser {
   }
 
   fn end_game(&mut self) -> Self::Result {
-    if !self.skip && self.erdos_link.game_info.moves_count >= 20 {
-      let winner = block_on(USERS.find_one(doc! {"_id": &self.user_id}, None))
+    if !self.skip && self.erdos_link.moves_count >= 20 {
+      let winner = block_on(self.db.users.find_one(doc! {"_id": &self.user_id}, None))
         .unwrap()
         .unwrap();
-      let loser = block_on(USERS.find_one(doc! {"_id": &self.erdos_link.loser_id}, None))
-        .unwrap()
-        .unwrap();
+      let loser = block_on(
+        self
+          .db
+          .users
+          .find_one(doc! {"_id": &self.erdos_link.loser_id}, None),
+      )
+      .unwrap()
+      .unwrap();
       let loser_erdos_number = if loser.erdos_number == 0 {
         0
       } else {
@@ -237,7 +239,7 @@ impl Visitor for GameParser {
       };
       if winner.erdos_number > loser_erdos_number + 1 {
         self.erdos_link.erdos_number = loser_erdos_number + 1;
-        block_on(USERS.update_one(
+        block_on(self.db.users.update_one(
           doc! {"_id": &self.user_id},
           doc! {
             "$set": {"erdos_number": self.erdos_link.erdos_number},
@@ -252,7 +254,7 @@ impl Visitor for GameParser {
   }
 }
 
-fn process_archive(url: &str) -> Result<()> {
+fn process_archive(url: &str, db: Db) -> Result<()> {
   let mut curl_child = Command::new("curl")
     .arg(url)
     .stdout(Stdio::piped())
@@ -264,16 +266,16 @@ fn process_archive(url: &str) -> Result<()> {
     .spawn()?;
   let pbzip_output = pbzip_child.stdout.take().context("No pbzip stdout")?;
   let mut pgn_read = pgn_reader::BufferedReader::new(pbzip_output);
-  let mut game_parser = GameParser::default();
+  let mut game_parser = GameParser::new(db);
   pgn_read.read_all(&mut game_parser)?;
   ensure!(curl_child.wait()?.success(), "Curl failed");
   ensure!(pbzip_child.wait()?.success(), "Pbzip failed");
   Ok(())
 }
 
-pub async fn process_new_archives_task() -> Result<()> {
-  if META.find_one(None, None).await?.is_none() {
-    META
+pub async fn process_new_archives_task(db: Db) -> Result<()> {
+  if db.meta.find_one(None, None).await?.is_none() {
+    db.meta
       .insert_one(
         Meta {
           last_processed_archive:
@@ -284,7 +286,8 @@ pub async fn process_new_archives_task() -> Result<()> {
       )
       .await?;
   }
-  if USERS
+  if db
+    .users
     .find_one(doc! {"_id": ERDOS_ID}, None)
     .await?
     .is_none()
@@ -295,11 +298,12 @@ pub async fn process_new_archives_task() -> Result<()> {
       ..Default::default()
     };
     dbg!(&user);
-    USERS.insert_one(user, None).await?;
+    db.users.insert_one(user, None).await?;
   }
   loop {
     info!("Processing new archives");
-    let last_archive = META
+    let last_archive = db
+      .meta
       .find_one(doc! {}, None)
       .await?
       .context("No meta record found")?
@@ -317,9 +321,14 @@ pub async fn process_new_archives_task() -> Result<()> {
     for archive in lichess_archives {
       info!("Processing archive url: {}", &archive);
       let archive_clone = archive.clone();
-      spawn_blocking(move || process_archive(&archive_clone)).await??;
-      META
-        .update_one(doc! {}, doc! {"last_processed_archive": &archive}, None)
+      let db_clone = db.clone();
+      spawn_blocking(move || process_archive(&archive_clone, db_clone)).await??;
+      db.meta
+        .update_one(
+          doc! {},
+          doc! {"$set": {"last_processed_archive": &archive}},
+          None,
+        )
         .await?;
       info!("Archive url processed: {}", &archive);
     }

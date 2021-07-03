@@ -1,11 +1,8 @@
+use actix_cors::Cors;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
-use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
-use serde_json::to_string_pretty;
 
-use super::db::ErdosLink;
+use super::data::{build_schema, Db, SchemaType};
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -16,27 +13,18 @@ async fn hello() -> impl Responder {
     ))
 }
 
-struct Query;
-
-#[Object]
-impl Query {
-  async fn hello(&self, username: String) -> String {
-    format!("Hello, {}", username)
-  }
-}
-
 async fn graphql(
   request: async_graphql_actix_web::Request,
-  schema: web::Data<Schema<Query, EmptyMutation, EmptySubscription>>,
+  schema: web::Data<SchemaType>,
 ) -> async_graphql_actix_web::Response {
   schema.execute(request.into_inner()).await.into()
 }
 
-pub async fn http_server_task() -> anyhow::Result<()> {
-  let schema = Schema::build(Query, EmptyMutation, EmptySubscription).finish();
+pub async fn http_server_task(db: Db) -> anyhow::Result<()> {
   HttpServer::new(move || {
     App::new()
-      .app_data(web::Data::new(schema.clone()))
+      .wrap(Cors::permissive())
+      .app_data(web::Data::new(build_schema(db.clone())))
       .service(hello)
       .service(web::resource("/graphql").to(graphql))
   })
