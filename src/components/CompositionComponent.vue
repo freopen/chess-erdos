@@ -2,18 +2,13 @@
   <div>
     <p>{{ title }}</p>
     <ul>
-      <li
-        v-for="todo in todos"
-        :key="todo.id"
-        @click="increment"
-      >
+      <li v-for="todo in todos" :key="todo.id" @click="increment">
         {{ todo.id }} - {{ todo.content }}
       </li>
     </ul>
     <p>Count: {{ todoCount }} / {{ meta.totalCount }}</p>
     <p>Active: {{ active ? 'yes' : 'no' }}</p>
     <p>Clicks on todos: {{ clickCount }}</p>
-    <p>{{ proto }}</p>
   </div>
 </template>
 
@@ -26,7 +21,6 @@ import {
   toRef,
   Ref,
 } from 'vue';
-import grpc from '../grpc';
 import { Todo, Meta } from './models';
 
 function useClickCount() {
@@ -35,12 +29,8 @@ function useClickCount() {
     clickCount.value += 1;
     return clickCount.value;
   }
-  const proto = ref('');
-  void (async () => {
-    const { response } = await grpc.getErdosLinks({ userId: 'aad11' });
-    proto.value = JSON.stringify(response);
-  })();
-  return { clickCount, increment, proto };
+
+  return { clickCount, increment };
 }
 
 function useDisplayTodo(todos: Ref<Todo[]>) {

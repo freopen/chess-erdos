@@ -1,28 +1,24 @@
 {
   "name": "chess-erdos",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "A Quasar Framework app",
-  "productName": "Chess Erdos",
+  "productName": "Quasar App",
   "author": "Aleksei Zolotov <freopen@freopen.org>",
   "private": true,
   "scripts": {
     "lint": "eslint --ext .js,.ts,.vue ./",
-    "protoc": "protoc --ts_out ./src/grpc --ts_opt long_type_number --proto_path ./proto ./proto/service.proto",
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "@protobuf-ts/grpcweb-transport": "^2.0.0-alpha.24",
-    "@protobuf-ts/runtime": "^2.0.0-alpha.24",
     "@quasar/extras": "^1.0.0",
     "core-js": "^3.6.5",
-    "quasar": "^2.0.0-beta.1"
+    "quasar": "^2.0.0"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.13.14",
-    "@protobuf-ts/plugin": "^2.0.0-alpha.24",
-    "@quasar/app": "^3.0.0-beta.1",
-    "@quasar/cli": "^1.2.0",
-    "@types/node": "^15.6.2",
+    "@quasar/app": "^3.0.0",
+    "@quasar/quasar-app-extension-apollo": "^2.0.0-beta.3",
+    "@types/node": "^10.17.15",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
     "eslint": "^7.14.0",

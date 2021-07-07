@@ -5,7 +5,8 @@
       active
       :todos="todos"
       :meta="meta"
-    />
+    ></example-component>
+    {{ result }}
   </q-page>
 </template>
 
@@ -13,11 +14,24 @@
 import { Todo, Meta } from 'components/models';
 import ExampleComponent from 'components/CompositionComponent.vue';
 import { defineComponent, ref } from 'vue';
+import gql from 'graphql-tag';
+import { useQuery } from '@vue/apollo-composable';
 
 export default defineComponent({
   name: 'PageIndex',
   components: { ExampleComponent },
   setup() {
+    const { result } = useQuery(gql`
+      query getUser {
+        user(id: "anibalpg") {
+          id
+          erdosNumber
+          erdosLinks {
+            loserId
+            erdosNumber
+          }
+        }
+      }`);
     const todos = ref<Todo[]>([
       {
         id: 1,
@@ -43,7 +57,7 @@ export default defineComponent({
     const meta = ref<Meta>({
       totalCount: 1200,
     });
-    return { todos, meta };
+    return { todos, meta, result };
   },
 });
 </script>
