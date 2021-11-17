@@ -11,9 +11,3 @@
 # Perf metrics
 /flamegraph.svg
 /perf.data*
-
-# Frontend generated files
-/node_modules/
-/src/grpc/service.*
-/dist/
-/.quasar/

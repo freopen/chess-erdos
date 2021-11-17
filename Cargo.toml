@@ -2,23 +2,17 @@
 name = "chess-erdos"
 version = "0.1.0"
 authors = ["Aleksei Zolotov <freopen@freopen.org>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-actix-cors = "0.6.0-beta.2"
-actix-web = "4.0.0-beta.8"
-anyhow = "1.0.41"
-async-graphql = { git="https://github.com/async-graphql/async-graphql.git", branch="actix-web-v4-beta", features=["chrono", "apollo_tracing", "log"] }
-async-graphql-actix-web = { git="https://github.com/async-graphql/async-graphql.git", branch="actix-web-v4-beta" }
-chrono = { version="0.4.19", features=["serde"] }
-derivative = "2.2.0"
-env_logger = "0.8.4"
-futures = "0.3.15"
+anyhow = "1.0.45"
+chrono = { version = "0.4.19", features = ["serde"] }
+env_logger = "0.9.0"
+futures = "0.3.17"
 log = "0.4.14"
-mongodb = "2.0.0-beta.2"
-pgn-reader = "0.18.0"
-reqwest = { version="0.11.4", default-features=false, features=["rustls-tls"] }
-serde = { version="1.0.126", features=["derive"] }
-serde_json = "1.0.64"
-shakmaty = "0.19.0"
-tokio = { version="1.8.0", features=["full"] }
+pgn-reader = "0.19.0"
+reqwest = { version = "0.11.4", default-features = false, features = [
+  "rustls-tls",
+] }
+shakmaty = "0.20.2"
+tokio = { version = "1.14.0", features = ["full"] }
