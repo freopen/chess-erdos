@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "pbdb.proto";
+
+package chess_erdos;
+
+message User {
+  string id = 1 [ (pbdb.id) = CASE_INSENSITIVE ];
+  google.protobuf.Timestamp first_game = 2;
+  repeated ErdosLink erdos_links = 3;
+}
+
+enum TimeControlType {
+  UNKNOWN_TIME_CONTROL = 0;
+  BLITZ = 1;
+  RAPID = 2;
+  CLASSICAL = 3;
+}
+
+enum WinType {
+  UNKNOWN_WIN_TYPE = 0;
+  CHECKMATE = 1;
+  RESIGN = 2;
+  TIMEOUT = 3;
+}
+
+message ErdosLink {
+  int32 erdos_number = 1;
+  string loser_id = 2;
+  google.protobuf.Timestamp time = 3;
+
+  string winner_title = 4;
+  int32 winner_rating = 5;
+  int32 winner_rating_diff = 6;
+
+  string loser_title = 7;
+  int32 loser_rating = 8;
+  int32 loser_rating_diff = 9;
+
+  TimeControlType time_control_type = 10;
+  int32 time_control_main = 11;
+  int32 time_control_increment = 12;
+
+  string game_id = 13;
+  WinType win_type = 14;
+  int32 move_count = 15;
+  bool winner_is_white = 16;
+}
+
+message Metadata {
+  option (pbdb.single_record) = true;
+  string last_processed_archive = 1;
+}
