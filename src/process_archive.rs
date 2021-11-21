@@ -6,15 +6,15 @@ use chrono::{TimeZone, Utc};
 use log::info;
 use pbdb::{Collection, SingleRecord};
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
-use prost_types::Timestamp;
 use reqwest::get;
 use shakmaty::san::Suffix;
 use tokio::{task::spawn_blocking, time::sleep};
 
-use crate::proto::{self, ErdosLink, TimeControlType, User, WinType};
+use crate::{
+  proto::{self, ErdosLink, TimeControlType, User, WinType},
+  util::{user_to_erdos_number, user_to_erdos_number_at, ERDOS_ID, ERDOS_NUMBER_INF},
+};
 
-const ERDOS_NUMBER_INF: i32 = i32::MAX - 1;
-const ERDOS_ID: &str = "gorizav"; //"DrNykterstein";
 const LICHESS_DB_LIST: &str = "https://database.lichess.org/standard/list.txt";
 const DATETIME_FORMAT: &str = "%Y.%m.%d %H:%M:%S";
 
@@ -46,29 +46,22 @@ impl GameParser {
     if let Some(erdos_number) = self.users_cache.get(id) {
       Ok(*erdos_number)
     } else if let Some(user) = User::get(&id.to_string())? {
-      let erdos_number = user
-        .erdos_links
-        .last()
-        .map(|link| link.erdos_number)
-        .unwrap_or(ERDOS_NUMBER_INF);
+      let erdos_number = user_to_erdos_number(&user);
       self.users_cache.insert(id.to_string(), erdos_number);
       Ok(erdos_number)
     } else {
       User {
         id: id.to_string(),
-        first_game: Some(Timestamp {
-          seconds: Utc
-            .datetime_from_str(
-              &format!(
-                "{} {}",
-                self.headers.get("UTCDate").unwrap(),
-                self.headers.get("UTCTime").unwrap()
-              ),
-              DATETIME_FORMAT,
-            )?
-            .timestamp(),
-          nanos: 0,
-        }),
+        first_game: Utc
+          .datetime_from_str(
+            &format!(
+              "{} {}",
+              self.headers.get("UTCDate").unwrap(),
+              self.headers.get("UTCTime").unwrap()
+            ),
+            DATETIME_FORMAT,
+          )?
+          .timestamp(),
         erdos_links: vec![],
       }
       .put()?;
@@ -199,19 +192,16 @@ impl GameParser {
       },
     );
 
-    self.erdos_link.time = Some(Timestamp {
-      seconds: Utc
-        .datetime_from_str(
-          &format!(
-            "{} {}",
-            self.headers.remove("UTCDate").unwrap(),
-            self.headers.remove("UTCTime").unwrap(),
-          ),
-          DATETIME_FORMAT,
-        )?
-        .timestamp(),
-      nanos: 0,
-    });
+    self.erdos_link.time = Utc
+      .datetime_from_str(
+        &format!(
+          "{} {}",
+          self.headers.remove("UTCDate").unwrap(),
+          self.headers.remove("UTCTime").unwrap(),
+        ),
+        DATETIME_FORMAT,
+      )?
+      .timestamp();
 
     self.erdos_link.game_id = self
       .headers
@@ -276,26 +266,14 @@ impl Visitor for GameParser {
       let loser_erdos_number = if self.erdos_link.loser_id == ERDOS_ID {
         0
       } else {
-        let loser = User::get(&self.erdos_link.loser_id)
-          .unwrap()
-          .expect("User should be in DB at this point");
-        loser
-          .erdos_links
-          .into_iter()
-          .find(|erdos_link| {
-            erdos_link.time.as_ref().unwrap().seconds
-              < self.erdos_link.time.as_ref().unwrap().seconds
-          })
-          .map(|erdos_link| erdos_link.erdos_number)
-          .unwrap_or(ERDOS_NUMBER_INF)
+        user_to_erdos_number_at(
+          &User::get(&self.erdos_link.loser_id)
+            .unwrap()
+            .expect("User should be in DB at this point"),
+          self.erdos_link.time,
+        )
       };
-      if winner
-        .erdos_links
-        .last()
-        .map(|link| link.erdos_number)
-        .unwrap_or(ERDOS_NUMBER_INF)
-        > loser_erdos_number + 1
-      {
+      if user_to_erdos_number(&winner) > loser_erdos_number + 1 {
         self.erdos_link.erdos_number = loser_erdos_number + 1;
         winner.erdos_links.push(self.erdos_link.clone());
         winner.put().unwrap();
