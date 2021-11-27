@@ -1,0 +1,52 @@
+---
+- name: Install Chess Erdos backend
+  hosts: server
+  tasks:
+    - name: Install packages
+      pacman:
+        name:
+          - curl
+          - pbzip2
+          - clang
+        state: present
+    - name: Update rust
+      command: rustup update
+      register: rustup_update_cmd
+      changed_when: '"unchanged" not in rustup_update_cmd.stdout'
+    - name: Create the user
+      user:
+        name: chess_erdos
+        state: present
+        home: /home/chess_erdos
+    - name: Create temp build directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: build
+      register: build_dir
+    - name: Clone git repo
+      git:
+        repo: https://github.com/freopen/chess-erdos.git
+        dest: "{{ build_dir.path }}"
+        depth: 1
+        single_branch: yes
+    - name: Build the binary
+      command:
+        chdir: "{{ build_dir.path }}"
+        cmd: cargo install --path . --root /home/chess_erdos
+      changed_when: true
+    - name: Copy systemd unit file
+      copy:
+        src: systemd.conf
+        dest: /etc/systemd/system/chess_erdos.service
+        owner: root
+        group: root
+        mode: 0644
+    - name: Enable and restart service
+      systemd:
+        name: chess_erdos
+        state: restarted
+        enabled: yes
+    - name: Remove temp build directory
+      file:
+        path: "{{ build_dir.path }}"
+        state: absent
