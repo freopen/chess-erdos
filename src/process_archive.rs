@@ -3,12 +3,13 @@ use std::{collections::HashMap, time::Duration};
 
 use anyhow::{ensure, Context, Result};
 use chrono::{TimeZone, Utc};
-use log::info;
+use metrics::increment_counter;
 use pbdb::{Collection, SingleRecord};
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use reqwest::get;
 use shakmaty::san::Suffix;
 use tokio::{task::spawn_blocking, time::sleep};
+use tracing::info;
 
 use crate::{
   proto::{self, ErdosLink, TimeControlType, User, WinType},
@@ -76,6 +77,7 @@ impl GameParser {
     let black = self.headers.remove("Black").unwrap();
     let black_erdos_number = self.get_latest_erdos_number(&black)?;
     if white == "?" || black == "?" || (white_erdos_number - black_erdos_number).abs() < 2 {
+      increment_counter!("games_skipped", "reason" => "fast_erdos");
       return Ok(false);
     }
 
@@ -83,6 +85,7 @@ impl GameParser {
     let without_rated = if let Some(without_rated) = event.strip_prefix("Rated ") {
       without_rated
     } else {
+      increment_counter!("games_skipped", "reason" => "unrated");
       return Ok(false); // Skip unrated games.
     };
     if without_rated.starts_with("Blitz ") {
@@ -98,12 +101,14 @@ impl GameParser {
         .erdos_link
         .set_time_control_type(TimeControlType::Classical);
     } else {
+      increment_counter!("games_skipped", "reason" => format!("timecontrol: {}", without_rated));
       return Ok(false); // Skip other time control types.
     }
 
     match self.headers.remove("Result").as_deref() {
       Some("1-0") => {
         if white_erdos_number <= black_erdos_number + 1 {
+          increment_counter!("games_skipped", "reason" => "erdos");
           return Ok(false); // Erdos number is not improving.
         }
         self.erdos_link.winner_is_white = true;
@@ -112,6 +117,7 @@ impl GameParser {
       }
       Some("0-1") => {
         if black_erdos_number <= white_erdos_number + 1 {
+          increment_counter!("games_skipped", "reason" => "erdos");
           return Ok(false); // Erdos number is not improving.
         }
         self.erdos_link.winner_is_white = false;
@@ -119,6 +125,7 @@ impl GameParser {
         self.erdos_link.loser_id = white;
       }
       _ => {
+        increment_counter!("games_skipped", "reason" => "draw");
         return Ok(false); // Skip draws.
       }
     };
@@ -148,6 +155,7 @@ impl GameParser {
       }) {
       rating_diff.parse()?
     } else {
+      increment_counter!("games_skipped", "reason" => "cheater");
       return Ok(false); // Cheaters often have no diffs, skip PGNs without diffs.
     };
 
@@ -176,6 +184,7 @@ impl GameParser {
       }) {
       rating_diff.parse()?
     } else {
+      increment_counter!("games_skipped", "reason" => "cheater");
       return Ok(false); // Cheaters often have no diffs, skip PGNs without diffs.
     };
 
@@ -188,7 +197,10 @@ impl GameParser {
       {
         "Normal" => WinType::Resign,
         "Time forfeit" => WinType::Timeout,
-        _ => return Ok(false), // Unknown termination type, safer to skip.
+        termination => {
+          increment_counter!("games_skipped", "reason" => format!("termination: {}", termination));
+          return Ok(false);
+        } // Unknown termination type, safer to skip.
       },
     );
 
@@ -259,7 +271,12 @@ impl Visitor for GameParser {
   }
 
   fn end_game(&mut self) -> Self::Result {
-    if !self.skip && self.erdos_link.move_count >= 20 {
+    increment_counter!("games_processed");
+    if !self.skip {
+      if self.erdos_link.move_count < 20 {
+        increment_counter!("games_skipped", "reason" => "short");
+        return; // Skip games with less than 20 moves.
+      }
       let mut winner = User::get(&self.user_id)
         .unwrap()
         .expect("User should be in DB at this point");
@@ -273,12 +290,19 @@ impl Visitor for GameParser {
           self.erdos_link.time,
         )
       };
-      if user_to_erdos_number(&winner) > loser_erdos_number + 1 {
+      let winner_erdos_number = user_to_erdos_number(&winner);
+      if winner_erdos_number > loser_erdos_number + 1 {
+        increment_counter!(
+          "erdos_updated",
+          "new" => format!("{}", loser_erdos_number + 1),
+          "old" => format!("{}", winner_erdos_number)
+        );
         self.erdos_link.erdos_number = loser_erdos_number + 1;
         winner.erdos_links.push(self.erdos_link.clone());
         winner.put().unwrap();
-        dbg!(winner);
         *self.users_cache.get_mut(&self.user_id).unwrap() = self.erdos_link.erdos_number;
+      } else {
+        increment_counter!("games_skipped", "reason" => "db_erdos");
       }
     }
   }
@@ -288,11 +312,13 @@ fn process_archive(url: &str) -> Result<()> {
   let mut curl_child = Command::new("curl")
     .arg(url)
     .stdout(Stdio::piped())
+    .stderr(Stdio::null())
     .spawn()?;
   let curl_output = curl_child.stdout.take().context("No curl stdout")?;
   let mut pbzip_child = Command::new("pbunzip2")
     .stdin(curl_output)
     .stdout(Stdio::piped())
+    .stderr(Stdio::null())
     .spawn()?;
   let pbzip_output = pbzip_child.stdout.take().context("No pbzip stdout")?;
   let mut pgn_read = pgn_reader::BufferedReader::new(pbzip_output);
@@ -305,16 +331,7 @@ fn process_archive(url: &str) -> Result<()> {
 
 pub async fn process_new_archives_task() -> Result<()> {
   loop {
-    info!("Processing new archives");
-    let last_archive = {
-      let from_db = proto::Metadata::get()?.last_processed_archive;
-      if from_db.is_empty() {
-        "https://database.lichess.org/standard/lichess_db_standard_rated_2019-05.pgn.bz2"
-          .to_string()
-      } else {
-        from_db
-      }
-    };
+    let last_archive = proto::Metadata::get()?.last_processed_archive;
     let lichess_archives: Vec<String> = get(LICHESS_DB_LIST)
       .await?
       .text()
@@ -326,10 +343,10 @@ pub async fn process_new_archives_task() -> Result<()> {
       .collect();
     info!("New archives found: {}", lichess_archives.len());
     for archive in lichess_archives {
-      info!("Processing archive url: {}", &archive);
+      info!(%archive, "Processing archive");
       let archive_clone = archive.clone();
       spawn_blocking(move || process_archive(&archive_clone)).await??;
-      info!("Archive url processed: {}", &archive);
+      info!(%archive, "Archive processed");
       let mut metadata = proto::Metadata::get()?;
       metadata.last_processed_archive = archive;
       metadata.put()?;

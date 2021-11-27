@@ -4,13 +4,13 @@ use tonic::{Request, Response, Status};
 
 use crate::{
   proto::{
-    chess_erdos_service_server::ChessErdosService, ErdosChain, ErdosLink, GetErdosChainsRequest,
-    GetErdosChainsResponse, User,
+    chess_erdos_service_server::{ChessErdosService, ChessErdosServiceServer},
+    ErdosChain, ErdosLink, GetErdosChainsRequest, GetErdosChainsResponse, User,
   },
   util::user_to_erdos_number,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ChessErdosServiceImpl {}
 
 fn expand_erdos_chain(erdos_link: ErdosLink) -> Result<ErdosChain> {
@@ -42,6 +42,7 @@ fn build_erdos_chains(user: User) -> Result<GetErdosChainsResponse> {
 
 #[tonic::async_trait]
 impl ChessErdosService for ChessErdosServiceImpl {
+  #[tracing::instrument(err)]
   async fn get_erdos_chains(
     &self,
     request: Request<GetErdosChainsRequest>,
@@ -55,4 +56,31 @@ impl ChessErdosService for ChessErdosServiceImpl {
       },
     }
   }
+}
+
+#[cfg(feature = "dev")]
+pub async fn serve() -> Result<()> {
+  let chess_erdos_service = ChessErdosServiceImpl::default();
+  let grpc_web_service = tonic_web::config()
+    .allow_all_origins()
+    .enable(ChessErdosServiceServer::new(chess_erdos_service));
+  tonic::transport::Server::builder()
+    .trace_fn(|_| tracing::info_span!("grpc_server"))
+    .accept_http1(true)
+    .add_service(grpc_web_service)
+    .serve("127.0.0.1:8080".parse()?)
+    .await?;
+  Ok(())
+}
+
+#[cfg(not(feature = "dev"))]
+pub async fn serve() -> Result<()> {
+  tonic::transport::Server::builder()
+    .trace_fn(|_| tracing::info_span!("grpc_server"))
+    .add_service(ChessErdosServiceServer::new(
+      ChessErdosServiceImpl::default(),
+    ))
+    .serve("0.0.0.0:50000".parse()?)
+    .await?;
+  Ok(())
 }

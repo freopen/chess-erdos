@@ -3,5 +3,8 @@
     "options": [
       "--proto_path=${workspaceRoot}/proto"
     ]
-  }
+  },
+  "rust-analyzer.cargo.features": [
+    "dev"
+  ]
 }

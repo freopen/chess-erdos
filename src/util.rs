@@ -1,7 +1,7 @@
 use crate::proto::User;
 
 pub const ERDOS_NUMBER_INF: i32 = i32::MAX - 1;
-pub const ERDOS_ID: &str = "gorizav"; //"DrNykterstein";
+pub const ERDOS_ID: &str = "DrNykterstein";
 
 pub fn user_to_erdos_number(user: &User) -> i32 {
   if user.id == ERDOS_ID {
