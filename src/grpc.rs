@@ -75,17 +75,12 @@ pub async fn serve() -> Result<()> {
 
 #[cfg(not(feature = "dev"))]
 pub async fn serve() -> Result<()> {
-  let cert = tokio::fs::read("tls/server.pem").await?;
-  let key = tokio::fs::read("tls/server.key").await?;
-  let identity = tonic::transport::Identity::from_pem(cert, key);
-
   tonic::transport::Server::builder()
-    .tls_config(tonic::transport::ServerTlsConfig::new().identity(identity))?
     .trace_fn(|_| tracing::info_span!("grpc_server"))
     .add_service(ChessErdosServiceServer::new(
       ChessErdosServiceImpl::default(),
     ))
-    .serve("0.0.0.0:443".parse()?)
+    .serve("0.0.0.0:50000".parse()?)
     .await?;
   Ok(())
 }
