@@ -33,7 +33,11 @@
       command:
         chdir: "{{ build_dir.path }}"
         cmd: cargo install --path . --root /home/chess_erdos
+      environment:
+        RUSTC_WRAPPER: sccache
       changed_when: true
+      async: 1200
+      poll: 10
     - name: Copy systemd unit file
       copy:
         src: systemd.conf
