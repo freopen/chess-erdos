@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use tracing_subscriber::prelude::*;
+use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
 mod grpc;
 mod process_archive;
@@ -31,7 +31,11 @@ async fn main() -> Result<()> {
   tracing_subscriber::registry()
     .with(tracing_subscriber::EnvFilter::new("INFO"))
     .with(tracing_opentelemetry::layer().with_tracer(tracer))
-    .with(tracing_subscriber::fmt::layer().json())
+    .with(
+      tracing_subscriber::fmt::layer()
+        .json()
+        .with_span_events(FmtSpan::FULL),
+    )
     .try_init()?;
   metrics_exporter_prometheus::PrometheusBuilder::new()
     .listen_address("127.0.0.1:40000".parse::<SocketAddr>()?)
