@@ -80,7 +80,7 @@ pub async fn serve() -> Result<()> {
     .add_service(ChessErdosServiceServer::new(
       ChessErdosServiceImpl::default(),
     ))
-    .serve("0.0.0.0:50000".parse()?)
+    .serve("127.0.0.1:50000".parse()?)
     .await?;
   Ok(())
 }
