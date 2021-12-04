@@ -58,7 +58,6 @@ impl ChessErdosService for ChessErdosServiceImpl {
   }
 }
 
-#[cfg(feature = "dev")]
 pub async fn serve() -> Result<()> {
   let chess_erdos_service = ChessErdosServiceImpl::default();
   let grpc_web_service = tonic_web::config()
@@ -68,18 +67,6 @@ pub async fn serve() -> Result<()> {
     .trace_fn(|_| tracing::info_span!("grpc_server"))
     .accept_http1(true)
     .add_service(grpc_web_service)
-    .serve("127.0.0.1:8080".parse()?)
-    .await?;
-  Ok(())
-}
-
-#[cfg(not(feature = "dev"))]
-pub async fn serve() -> Result<()> {
-  tonic::transport::Server::builder()
-    .trace_fn(|_| tracing::info_span!("grpc_server"))
-    .add_service(ChessErdosServiceServer::new(
-      ChessErdosServiceImpl::default(),
-    ))
     .serve("127.0.0.1:50000".parse()?)
     .await?;
   Ok(())
