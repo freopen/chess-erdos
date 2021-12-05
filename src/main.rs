@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
+use opentelemetry::KeyValue;
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
 mod grpc;
@@ -22,20 +23,20 @@ fn register_metrics() {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-  opentelemetry::global::set_text_map_propagator(
-    opentelemetry::sdk::propagation::TraceContextPropagator::new(),
-  );
-  let tracer = opentelemetry_jaeger::new_pipeline()
-    .with_service_name("chess-erdos")
+  let otlp_exporter = opentelemetry_otlp::new_exporter().tonic();
+  let tracer = opentelemetry_otlp::new_pipeline()
+    .tracing()
+    .with_exporter(otlp_exporter)
+    .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
+      opentelemetry::sdk::Resource::new(vec![
+        KeyValue::new("service.name", "chess_erdos"),
+        KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+      ]),
+    ))
     .install_batch(opentelemetry::runtime::Tokio)?;
   tracing_subscriber::registry()
     .with(tracing_subscriber::EnvFilter::new("INFO"))
     .with(tracing_opentelemetry::layer().with_tracer(tracer))
-    .with(
-      tracing_subscriber::fmt::layer()
-        .json()
-        .with_span_events(FmtSpan::FULL),
-    )
     .try_init()?;
   metrics_exporter_prometheus::PrometheusBuilder::new()
     .listen_address("127.0.0.1:40000".parse::<SocketAddr>()?)

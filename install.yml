@@ -2,13 +2,6 @@
 - name: Install Chess Erdos backend
   hosts: server
   tasks:
-    - name: Install packages
-      pacman:
-        name:
-          - curl
-          - pbzip2
-          - clang
-        state: present
     - name: Update rust
       command: rustup update
       register: rustup_update_cmd
@@ -23,12 +16,16 @@
         state: directory
         suffix: build
       register: build_dir
-    - name: Clone git repo
-      git:
-        repo: https://github.com/freopen/chess-erdos.git
+    - name: Copy source to build directory
+      ansible.builtin.copy:
+        src: "{{ item }}"
         dest: "{{ build_dir.path }}"
-        depth: 1
-        single_branch: yes
+      loop:
+        - proto
+        - src
+        - build.rs
+        - Cargo.lock
+        - Cargo.toml
     - name: Build the binary
       command:
         chdir: "{{ build_dir.path }}"
