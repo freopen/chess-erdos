@@ -5,26 +5,19 @@ authors = ["Aleksei Zolotov <freopen@freopen.org>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.49"
+anyhow = "1.0.56"
+bonsaidb = { version = "0.4.1", features = ["local"] }
 chrono = { version = "0.4.19", features = ["serde"] }
-futures = "0.3.18"
-metrics = "0.17.0"
-metrics-exporter-prometheus = "0.6.1"
-opentelemetry = { version = "0.16.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.9.0"
-pbdb = "0.3.0"
-pgn-reader = "0.19.0"
-prost = "0.9.0"
-prost-types = "0.9.0"
-reqwest = "0.11.6"
-shakmaty = "0.20.2"
-tokio = { version = "1.14.0", features = ["full"] }
-tonic = { version = "0.6.1", features = ["transport"] }
-tonic-web = { version = "0.2.0" }
-tracing = "0.1.29"
-tracing-opentelemetry = "0.16.0"
-tracing-subscriber = { version = "0.3.2", features = ["env-filter", "json"] }
-
-[build-dependencies]
-pbdb = "0.3.0"
-tonic-build = { version = "0.6.0" }
+futures = "0.3.21"
+metrics = "0.18.1"
+metrics-exporter-prometheus = "0.9.0"
+opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
+opentelemetry-otlp = "0.10.0"
+pgn-reader = "0.20.0"
+reqwest = "0.11.10"
+serde = "1.0.136"
+shakmaty = "0.21.0"
+tokio = { version = "1.17.0", features = ["full"] }
+tracing = "0.1.32"
+tracing-opentelemetry = "0.17.2"
+tracing-subscriber = { version = "0.3.11", features = ["env-filter", "json"] }

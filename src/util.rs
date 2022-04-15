@@ -1,9 +1,11 @@
-use crate::proto::User;
+use chrono::{DateTime, Utc};
 
-pub const ERDOS_NUMBER_INF: i32 = i32::MAX - 1;
-pub const ERDOS_ID: &str = "DrNykterstein";
+use crate::data::User;
 
-pub fn user_to_erdos_number(user: &User) -> i32 {
+pub const ERDOS_NUMBER_INF: u32 = u32::MAX - 1;
+pub const ERDOS_ID: &str = "mamalak";
+
+pub fn user_to_erdos_number(user: &User) -> u32 {
   if user.id == ERDOS_ID {
     0
   } else {
@@ -15,7 +17,7 @@ pub fn user_to_erdos_number(user: &User) -> i32 {
   }
 }
 
-pub fn user_to_erdos_number_at(user: &User, time: i64) -> i32 {
+pub fn user_to_erdos_number_at(user: &User, time: DateTime<Utc>) -> u32 {
   if user.id == ERDOS_ID {
     0
   } else {
