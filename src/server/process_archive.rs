@@ -23,6 +23,7 @@ const LICHESS_DB_LIST: &str = "https://database.lichess.org/standard/list.txt";
 #[derive(Clone)]
 struct ColorInfo {
     id: String,
+    erdos_number: u32,
     player_info: PlayerInfo,
 }
 
@@ -30,7 +31,7 @@ struct GameParser<'a> {
     db: &'a Database,
     erdos_link: ErdosLink,
     skip: bool,
-    fields_seen: u32,
+    fields_bitset: u32,
     date: chrono::NaiveDate,
     time: chrono::NaiveTime,
     white: ColorInfo,
@@ -73,11 +74,12 @@ impl<'a> GameParser<'a> {
                 termination: Termination::Checkmate,
             },
             skip: false,
-            fields_seen: 0,
+            fields_bitset: 0,
             date: chrono::NaiveDate::from_num_days_from_ce(0),
             time: chrono::NaiveTime::from_num_seconds_from_midnight(0, 0),
             white: ColorInfo {
                 id: "".to_string(),
+                erdos_number: 0,
                 player_info: PlayerInfo {
                     title: "".to_string(),
                     rating: 0,
@@ -86,6 +88,7 @@ impl<'a> GameParser<'a> {
             },
             black: ColorInfo {
                 id: "".to_string(),
+                erdos_number: 0,
                 player_info: PlayerInfo {
                     title: "".to_string(),
                     rating: 0,
@@ -120,7 +123,7 @@ impl<'a> Visitor for GameParser<'a> {
 
     fn begin_game(&mut self) {
         self.skip = false;
-        self.fields_seen = 0;
+        self.fields_bitset = 0;
         self.white.player_info.title = "".to_string();
         self.black.player_info.title = "".to_string();
         self.erdos_link.move_count = 0;
@@ -131,9 +134,10 @@ impl<'a> Visitor for GameParser<'a> {
         if self.skip {
             return;
         }
-        self.fields_seen += 1;
         match key {
             b"Event" => {
+                assert!(self.fields_bitset & 1 << 0 == 0);
+                self.fields_bitset |= 1 << 0;
                 let event = value.decode();
                 let without_rated = if let Some(without_rated) = event.strip_prefix(b"Rated ") {
                     without_rated
@@ -154,6 +158,8 @@ impl<'a> Visitor for GameParser<'a> {
                 }
             }
             b"Site" => {
+                assert!(self.fields_bitset & 1 << 1 == 0);
+                self.fields_bitset |= 1 << 1;
                 self.erdos_link.game_id = value
                     .decode_utf8()
                     .unwrap()
@@ -162,17 +168,25 @@ impl<'a> Visitor for GameParser<'a> {
                     .to_string();
             }
             b"White" => {
-                self.white.id = value.decode_utf8().unwrap().to_string();
-                if self.white.id == "?" {
+                assert!(self.fields_bitset & 1 << 2 == 0);
+                self.fields_bitset |= 1 << 2;
+                let id = value.decode_utf8().unwrap().to_string();
+                if id == "?" {
                     increment_counter!("games_skipped", "reason" => "unregistered: white");
                     self.skip = true;
+                } else {
+                    self.white.erdos_number = self.get_latest_erdos_number(&id).unwrap();
+                    self.white.id = id;
                 }
             }
             b"WhiteTitle" => {
-                self.fields_seen -= 1;
+                assert!(self.fields_bitset & 1 << 3 == 0);
+                self.fields_bitset |= 1 << 3;
                 self.white.player_info.title = value.decode_utf8().unwrap().to_string();
             }
             b"WhiteElo" => {
+                assert!(self.fields_bitset & 1 << 4 == 0);
+                self.fields_bitset |= 1 << 4;
                 let rating_str = value.decode_utf8().unwrap();
                 if rating_str == "?" {
                     increment_counter!("games_skipped", "reason" => "unregistered: white no elo");
@@ -182,21 +196,36 @@ impl<'a> Visitor for GameParser<'a> {
                 self.white.player_info.rating = rating_str.parse().unwrap();
             }
             b"WhiteRatingDiff" => {
+                assert!(self.fields_bitset & 1 << 5 == 0);
+                self.fields_bitset |= 1 << 5;
                 self.white.player_info.rating_change =
                     value.decode_utf8().unwrap().parse().unwrap();
             }
             b"Black" => {
-                self.black.id = value.decode_utf8().unwrap().to_string();
-                if self.black.id == "?" {
+                assert!(self.fields_bitset & 1 << 6 == 0);
+                self.fields_bitset |= 1 << 6;
+                let id = value.decode_utf8().unwrap().to_string();
+                if id == "?" {
                     increment_counter!("games_skipped", "reason" => "unregistered: black");
+                    self.skip = true;
+                } else {
+                    self.black.erdos_number = self.get_latest_erdos_number(&id).unwrap();
+                    self.black.id = id;
+                }
+                assert!(self.fields_bitset & 1 << 2 != 0);
+                if self.white.erdos_number.abs_diff(self.black.erdos_number) <= 1 {
+                    increment_counter!("games_skipped", "reason" => "erdos: fast");
                     self.skip = true;
                 }
             }
             b"BlackTitle" => {
-                self.fields_seen -= 1;
+                assert!(self.fields_bitset & 1 << 7 == 0);
+                self.fields_bitset |= 1 << 7;
                 self.black.player_info.title = value.decode_utf8().unwrap().to_string();
             }
             b"BlackElo" => {
+                assert!(self.fields_bitset & 1 << 8 == 0);
+                self.fields_bitset |= 1 << 8;
                 let rating_str = value.decode_utf8().unwrap();
                 if rating_str == "?" {
                     increment_counter!("games_skipped", "reason" => "unregistered: black no elo");
@@ -206,38 +235,50 @@ impl<'a> Visitor for GameParser<'a> {
                 self.black.player_info.rating = rating_str.parse().unwrap();
             }
             b"BlackRatingDiff" => {
+                assert!(self.fields_bitset & 1 << 9 == 0);
+                self.fields_bitset |= 1 << 9;
                 self.black.player_info.rating_change =
                     value.decode_utf8().unwrap().parse().unwrap();
             }
-            b"Result" => match value.decode().as_ref() {
-                b"1-0" => {
-                    self.erdos_link.winner_is_white = true;
+            b"Result" => {
+                assert!(self.fields_bitset & 1 << 10 == 0);
+                self.fields_bitset |= 1 << 10;
+                match value.decode().as_ref() {
+                    b"1-0" => {
+                        self.erdos_link.winner_is_white = true;
+                    }
+                    b"0-1" => {
+                        self.erdos_link.winner_is_white = false;
+                    }
+                    b"1/2-1/2" => {
+                        increment_counter!("games_skipped", "reason" => "result: draw");
+                        self.skip = true;
+                    }
+                    unknown_result => {
+                        unreachable!(
+                            "Unexpected Result: {}",
+                            std::str::from_utf8(unknown_result).unwrap()
+                        );
+                    }
                 }
-                b"0-1" => {
-                    self.erdos_link.winner_is_white = false;
-                }
-                b"1/2-1/2" => {
-                    increment_counter!("games_skipped", "reason" => "result: draw");
-                    self.skip = true;
-                }
-                unknown_result => {
-                    unreachable!(
-                        "Unexpected Result: {}",
-                        std::str::from_utf8(unknown_result).unwrap()
-                    );
-                }
-            },
+            }
             b"UTCDate" => {
+                assert!(self.fields_bitset & 1 << 11 == 0);
+                self.fields_bitset |= 1 << 11;
                 let date_str = value.decode_utf8().unwrap();
                 self.date = chrono::NaiveDate::parse_from_str(&date_str, "%Y.%m.%d")
                     .unwrap_or_else(|_| panic!("Failed to parse date: {date_str}"));
             }
             b"UTCTime" => {
+                assert!(self.fields_bitset & 1 << 12 == 0);
+                self.fields_bitset |= 1 << 12;
                 let time_str = value.decode_utf8().unwrap();
                 self.time = chrono::NaiveTime::parse_from_str(&time_str, "%H:%M:%S")
                     .unwrap_or_else(|_| panic!("Failed to parse time: {time_str}"));
             }
             b"TimeControl" => {
+                assert!(self.fields_bitset & 1 << 13 == 0);
+                self.fields_bitset |= 1 << 13;
                 let time_control = value.decode_utf8().unwrap();
                 let (main_str, increment_str) = time_control
                     .split_once('+')
@@ -245,31 +286,38 @@ impl<'a> Visitor for GameParser<'a> {
                 self.erdos_link.time_control.main = main_str.parse().unwrap();
                 self.erdos_link.time_control.increment = increment_str.parse().unwrap();
             }
-            b"Termination" => match value.decode().as_ref() {
-                b"Normal" => {
-                    self.erdos_link.termination = Termination::Resign;
+            b"Termination" => {
+                assert!(self.fields_bitset & 1 << 14 == 0);
+                self.fields_bitset |= 1 << 14;
+                match value.decode().as_ref() {
+                    b"Normal" => {
+                        self.erdos_link.termination = Termination::Resign;
+                    }
+                    b"Time forfeit" => {
+                        self.erdos_link.termination = Termination::Time;
+                    }
+                    unknown_termination => {
+                        increment_counter!("games_skipped", "reason" => format!("termination: {}", std::str::from_utf8(unknown_termination).unwrap()));
+                        self.skip = true;
+                    }
                 }
-                b"Time forfeit" => {
-                    self.erdos_link.termination = Termination::Time;
-                }
-                unknown_termination => {
-                    increment_counter!("games_skipped", "reason" => format!("termination: {}", std::str::from_utf8(unknown_termination).unwrap()));
-                    self.skip = true;
-                }
-            },
-            _ => {
-                self.fields_seen -= 1;
             }
+            _ => {}
         }
     }
 
     fn end_headers(&mut self) -> Skip {
         if !self.skip {
-            assert!(
-                self.fields_seen == 13,
-                "Unexpected number of fields: {}",
-                self.erdos_link.game_id
-            );
+            self.fields_bitset |= 1 << 3 | 1 << 7;
+            if self.fields_bitset != (1 << 15) - 1 {
+                assert!(
+                    self.fields_bitset | 1 << 5 | 1 << 9 == (1 << 15) - 1,
+                    "{}",
+                    self.erdos_link.game_id
+                );
+                increment_counter!("games_skipped", "reason" => "cheater: missing rating diff");
+                self.skip = true;
+            }
             let (winner, loser) = if self.erdos_link.winner_is_white {
                 (self.white.clone(), self.black.clone())
             } else {
@@ -278,7 +326,7 @@ impl<'a> Visitor for GameParser<'a> {
             let winner_erdos = self.get_latest_erdos_number(&winner.id).unwrap();
             let loser_erdos = self.get_latest_erdos_number(&loser.id).unwrap();
             if winner_erdos <= loser_erdos + 1 {
-                increment_counter!("games_skipped", "reason" => "erdos_quick");
+                increment_counter!("games_skipped", "reason" => "erdos: middle");
                 self.skip = true;
                 return Skip(true);
             }
@@ -337,7 +385,7 @@ impl<'a> Visitor for GameParser<'a> {
                 winner.update(self.db).unwrap();
                 *self.users_cache.get_mut(&self.user_id).unwrap() = self.erdos_link.erdos_number;
             } else {
-                increment_counter!("games_skipped", "reason" => "db_erdos");
+                increment_counter!("games_skipped", "reason" => "erdos: slow");
             }
         }
     }
