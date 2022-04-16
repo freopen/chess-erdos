@@ -1,2 +1,6 @@
-/target/
+/.rsw/
+/dist/
+/node_modules/
+/pkg/
 /schema.bonsaidb/
+/target/
