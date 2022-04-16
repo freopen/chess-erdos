@@ -7,30 +7,3 @@ cli = "pnpm"
 name = "chess-erdos"
 link = true
 root = ".."
-
-#! =======================================================
-
-#! -------- package: @rsw/hello --------
-# [[crates]]
-# #! npm package name
-# name = "@rsw/hello"
-# #! default is `.`
-# root = "."
-# #! default is `pkg`
-# out-dir = "pkg"
-# #! target: bundler | nodejs | web | no-modules, default is `web`
-# target = "web"
-#! run `npm link`: `true` | `false`, default is `false`
-# link = false
-# #! rsw watch
-# [crates.watch]
-# #! default is `true`
-# run = true
-# #! profile: `dev` | `profiling`, default is `dev`
-# profile = "dev"
-# #! rsw build
-# [crates.build]
-# #! default is `true`
-# run = true
-# #! profile: `release` | `profiling`, default is `release`
-# profile = "release"
