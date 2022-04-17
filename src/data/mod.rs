@@ -56,6 +56,12 @@ pub enum Termination {
     Time,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErdosChains {
+    pub id: String,
+    pub erdos_chains: Vec<Vec<ErdosLink>>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Collection)]
 #[collection(name = "server-metadata", primary_key = (), natural_id = |_| Some(()))]
 pub struct ServerMetadata {

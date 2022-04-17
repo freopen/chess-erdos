@@ -153,7 +153,18 @@ impl<'a> Visitor for GameParser<'a> {
                 } else if without_rated.starts_with(b"Classical ") {
                     self.erdos_link.time_control.game_type = TimeControlType::Classical;
                 } else {
-                    increment_counter!("games_skipped", "reason" => format!("timecontrol: {}", std::str::from_utf8(without_rated).unwrap()));
+                    increment_counter!(
+                        "games_skipped",
+                        "reason" => format!(
+                            "timecontrol: {}",
+                            std::str::from_utf8(without_rated)
+                                .unwrap()
+                                .split_ascii_whitespace()
+                                .take(2)
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                        )
+                    );
                     self.skip = true;
                 }
             }
@@ -211,8 +222,11 @@ impl<'a> Visitor for GameParser<'a> {
                 } else {
                     self.black.erdos_number = self.get_latest_erdos_number(&id).unwrap();
                     self.black.id = id;
-                    increment_counter!("games_skipped", "reason" => "erdos: fast");
-                    self.skip = true;
+                    assert!(self.fields_bitset & 1 << 2 != 0);
+                    if self.white.erdos_number.abs_diff(self.black.erdos_number) <= 1 {
+                        increment_counter!("games_skipped", "reason" => "erdos: fast");
+                        self.skip = true;
+                    }
                 }
             }
             b"BlackTitle" => {

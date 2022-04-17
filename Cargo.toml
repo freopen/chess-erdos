@@ -13,6 +13,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 console_error_panic_hook = "0.1.7"
 dioxus = { version = "0.2.3", features = ["web"] }
 log = "0.4.16"
+pot = "1.0.2"
 serde = "1.0.136"
 wasm-bindgen = "0.2.80"
 wasm-logger = "0.2.0"
@@ -25,6 +26,7 @@ headers = "0.3.7"
 include_dir = "0.7.2"
 metrics = "0.18.1"
 metrics-exporter-prometheus = "0.9.0"
+metrics-util = "0.12.0"
 mime_guess = "2.0.4"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.10.0"
