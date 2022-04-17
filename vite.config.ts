@@ -6,7 +6,11 @@ export default defineConfig({
     plugins: [
         ViteRsw(),
         createHtmlPlugin({
+            template: "html/index.html",
             minify: true,
         }),
     ],
+    build: {
+        outDir: "generated/dist",
+    },
 });

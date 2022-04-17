@@ -1,6 +1,6 @@
 /.rsw/
-/dist/
+/generated/*
+!/generated/.gitkeep
 /node_modules/
-/pkg/
 /schema.bonsaidb/
 /target/

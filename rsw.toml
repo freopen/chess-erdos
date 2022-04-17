@@ -7,3 +7,4 @@ cli = "pnpm"
 name = "chess-erdos"
 link = true
 root = ".."
+out-dir = "generated/rsw-pkg"

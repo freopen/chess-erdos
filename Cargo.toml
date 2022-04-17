@@ -12,6 +12,7 @@ bonsaidb = { version = "0.4.1", features = ["local"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 console_error_panic_hook = "0.1.7"
 dioxus = { version = "0.2.3", features = ["web"] }
+dioxus-core = "0.2.0"
 log = "0.4.16"
 pot = "1.0.2"
 serde = "1.0.136"

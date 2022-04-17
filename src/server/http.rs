@@ -8,7 +8,7 @@ use include_dir::{include_dir, Dir};
 
 use crate::data::{ErdosChains, ErdosLink, User};
 
-static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/dist");
+static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 
 async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'static [u8]) {
     if let Some(file) = DIST.get_file(format!("assets/{path}")) {

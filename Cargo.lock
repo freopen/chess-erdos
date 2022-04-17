@@ -396,6 +396,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "dioxus",
+ "dioxus-core",
  "futures",
  "headers",
  "include_dir",
