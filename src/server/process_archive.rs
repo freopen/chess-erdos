@@ -102,7 +102,7 @@ impl<'a> GameParser<'a> {
     fn get_latest_erdos_number(&mut self, id: &str) -> Result<u32> {
         if let Some(erdos_number) = self.users_cache.get(id) {
             Ok(*erdos_number)
-        } else if let Some(user) = User::get(&id.to_ascii_lowercase(), self.db)? {
+        } else if let Some(user) = User::get(id, self.db)? {
             let erdos_number = user_to_erdos_number(&user.contents);
             self.users_cache.insert(id.to_string(), erdos_number);
             Ok(erdos_number)
@@ -211,9 +211,6 @@ impl<'a> Visitor for GameParser<'a> {
                 } else {
                     self.black.erdos_number = self.get_latest_erdos_number(&id).unwrap();
                     self.black.id = id;
-                }
-                assert!(self.fields_bitset & 1 << 2 != 0);
-                if self.white.erdos_number.abs_diff(self.black.erdos_number) <= 1 {
                     increment_counter!("games_skipped", "reason" => "erdos: fast");
                     self.skip = true;
                 }
@@ -358,14 +355,14 @@ impl<'a> Visitor for GameParser<'a> {
             }
             self.erdos_link.time =
                 chrono::DateTime::from_utc(chrono::NaiveDateTime::new(self.date, self.time), Utc);
-            let mut winner = User::get(&self.user_id.to_ascii_lowercase(), self.db)
+            let mut winner = User::get(&self.user_id, self.db)
                 .unwrap()
                 .expect("User should be in DB at this point");
             let loser_erdos_number = if self.erdos_link.loser_id == ERDOS_ID {
                 0
             } else {
                 user_to_erdos_number_at(
-                    &User::get(&self.erdos_link.loser_id.to_ascii_lowercase(), self.db)
+                    &User::get(&self.erdos_link.loser_id, self.db)
                         .unwrap()
                         .expect("User should be in DB at this point")
                         .contents,
