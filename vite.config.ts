@@ -13,4 +13,18 @@ export default defineConfig({
     build: {
         outDir: "generated/dist",
     },
+    server: {
+        proxy: {
+            "/api": {
+                target: "http://127.0.0.1:4000",
+                changeOrigin: true,
+            },
+        },
+        watch: {
+            persistent: true,
+            usePolling: true,
+        },
+    },
 });
+
+// require("events").EventEmitter.defaultMaxListeners = 15;

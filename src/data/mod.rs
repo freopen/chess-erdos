@@ -12,7 +12,7 @@ pub struct User {
     pub erdos_links: Vec<ErdosLink>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ErdosLink {
     pub erdos_number: u32,
     pub loser_id: String,
@@ -28,28 +28,28 @@ pub struct ErdosLink {
     pub termination: Termination,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerInfo {
     pub title: String,
     pub rating: u32,
     pub rating_change: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TimeControl {
     pub game_type: TimeControlType,
     pub main: u32,
     pub increment: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TimeControlType {
     Blitz,
     Rapid,
     Classical,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Termination {
     Checkmate,
     Resign,
