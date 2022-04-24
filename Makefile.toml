@@ -1,0 +1,15 @@
+[tasks.watch-wasm]
+run_task = { name = ["wasm-build", "wasm-clean", "wasm-move-build"] }
+watch = true
+
+[tasks.wasm-build]
+command = "wasm-pack"
+args = ["build", "--dev", "-d", "generated/wasm-building", "-t", "web"]
+
+[tasks.wasm-clean]
+command = "rm"
+args = ["-rf", "generated/wasm"]
+
+[tasks.wasm-move-build]
+command = "mv"
+args = ["generated/wasm-building", "generated/wasm"]

@@ -4,12 +4,13 @@ import { createHtmlPlugin } from "vite-plugin-html";
 
 export default defineConfig({
     plugins: [
-        ViteRsw(),
+        // ViteRsw(),
         createHtmlPlugin({
             template: "html/index.html",
             minify: true,
         }),
     ],
+    assetsInclude: ["generated/wasm/chess_erdos_bg.wasm"],
     build: {
         outDir: "generated/dist",
     },
@@ -21,10 +22,8 @@ export default defineConfig({
             },
         },
         watch: {
-            persistent: true,
-            usePolling: true,
+            atomic: true,
         },
     },
+    clearScreen: false,
 });
-
-// require("events").EventEmitter.defaultMaxListeners = 15;
