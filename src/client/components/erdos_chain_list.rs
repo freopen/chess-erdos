@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::{client::uno::UnoAttributes, data::ErdosLink};
+use crate::{
+    client::{components::Time, uno::UnoAttributes},
+    data::ErdosLink,
+};
 
 #[inline_props]
 pub fn ErdosChainList<'a>(cx: Scope<'a>, id: &'a str, chain: &'a Vec<ErdosLink>) -> Element {
@@ -29,11 +32,12 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
         div {
             u_w: "full",
             u_grid: "~ cols-2 gap-2",
-            u_m: "2",
-            u_p: "2",
+            u_p: "4",
             div {
                 u_grid: "col-span-2",
-                "time"
+                Time {
+                    time: &link.time,
+                }
             }
             div {
                 UserLabel {

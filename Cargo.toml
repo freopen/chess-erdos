@@ -9,10 +9,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bonsaidb = { version = "0.4.1", features = ["local"] }
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.19", features = ["serde", "wasmbind"] }
+chrono-humanize = "0.2.1"
 console_error_panic_hook = "0.1.7"
 dioxus = { version = "0.2.3", features = ["web", "router"] }
 dioxus-core = "0.2.0"
+js-sys = "0.3.57"
+lazy_static = "1.4.0"
 log = "0.4.16"
 pot = "1.0.2"
 reqwest = "0.11.10"
