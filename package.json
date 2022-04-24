@@ -2,9 +2,6 @@
     "name": "chess-erdos",
     "private": true,
     "version": "0.1.0",
-    "scripts": {
-        "watch:uno": "unocss 'src/client/pages/*.rs' 'src/client/components/*.rs' --out-file generated/uno.css --watch"
-    },
     "dependencies": {
         "@iconify/json": "^2.1.29",
         "@unocss/cli": "^0.31.5",
