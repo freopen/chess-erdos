@@ -18,7 +18,9 @@ function extractorDioxus(): Extractor {
                 result.add(match[1]);
             }
             for (const match of code.matchAll(re_attributify)) {
-                result.add(`[u-${match[1].replace("_", "-")}~="${match[2]}"]`);
+                for (let value of match[2].split(" ")) {
+                    result.add(`[u-${match[1].replace("_", "-")}~="${value}"]`);
+                }
             }
             return result;
         },
@@ -35,11 +37,5 @@ export default defineConfig({
         }),
     ],
     extractors: [extractorDioxus()],
-    theme: {
-        extend: {
-            container: {
-                center: true,
-            },
-        },
-    },
+    theme: {},
 });
