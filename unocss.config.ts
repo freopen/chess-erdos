@@ -6,7 +6,7 @@ import {
     Extractor,
 } from "unocss";
 
-const re_class = /class\s*:\s*"([\w -:]+)"/g;
+const re_class = /"([\w -:]+)"/g;
 const re_attributify = /u_([\w_]+)\s*:\s*"([\w -:~]+)"/g;
 
 function extractorDioxus(): Extractor {
@@ -30,7 +30,12 @@ function extractorDioxus(): Extractor {
 export default defineConfig({
     presets: [
         presetWind(),
-        presetIcons(),
+        presetIcons({
+            extraProperties: {
+                display: "inline-block",
+                "vertical-align": "middle",
+            },
+        }),
         presetAttributify({
             prefix: "u-",
             strict: true,

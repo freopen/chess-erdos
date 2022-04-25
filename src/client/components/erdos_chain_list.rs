@@ -2,15 +2,27 @@ use dioxus::prelude::*;
 
 use crate::{
     client::{components::Time, uno::UnoAttributes},
-    data::ErdosLink,
+    data::{ErdosLink, PlayerInfo, Termination, TimeControl, TimeControlType},
 };
 
 #[inline_props]
 pub fn ErdosChainList<'a>(cx: Scope<'a>, id: &'a str, chain: &'a Vec<ErdosLink>) -> Element {
     let mut winner: &str = id;
+    let erdos = chain[0].erdos_number;
     cx.render(rsx! (
         div {
-            u_divide: "y",
+            div {
+                u_text: "center 5xl",
+                u_font: "black",
+                u_m: "8",
+                span {
+                    class: "i-fa6-solid:chess-king",
+                }
+                span {
+                    class: "i-fa6-solid:hashtag",
+                }
+                "{erdos}"
+            }
             chain.iter().map(|link| {
                 let winner = std::mem::replace(&mut winner, &link.loser_id);
                 let key = link.erdos_number;
@@ -28,42 +40,52 @@ pub fn ErdosChainList<'a>(cx: Scope<'a>, id: &'a str, chain: &'a Vec<ErdosLink>)
 
 #[inline_props]
 fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Element {
+    let winner_color = if link.winner_is_white {
+        "i-fa-regular:circle"
+    } else {
+        "i-fa-solid:circle"
+    };
+    let loser_color = if !link.winner_is_white {
+        "i-fa-regular:circle"
+    } else {
+        "i-fa-solid:circle"
+    };
     cx.render(rsx! (
         div {
             u_w: "full",
-            u_grid: "~ cols-2 gap-2",
-            u_p: "4",
             div {
-                u_grid: "col-span-2",
+                u_p: "1",
                 Time {
                     time: &link.time,
                 }
+                TimeControlLabel {
+                    time_control: &link.time_control,
+                }
+                GameResultLabel {
+                    move_count: link.move_count,
+                    termination: &link.termination,
+                }
             }
             div {
-                UserLabel {
+                u_m: "l-12",
+                span {
+                    class: "{winner_color}",
+                }
+                PlayerLabel {
                     id: winner,
-                    title: &link.winner_info.title,
-                }
-                div {
-                    RatingLabel {
-                        rating: link.winner_info.rating,
-                        rating_change: link.winner_info.rating_change,
-                        is_winner: true,
-                    }
+                    info: &link.winner_info,
+                    erdos: link.erdos_number,
                 }
             }
             div {
-                u_text: "right",
-                UserLabel {
-                    id: &link.loser_id,
-                    title: &link.loser_info.title,
+                u_m: "l-12",
+                span {
+                    class: "{loser_color}",
                 }
-                div {
-                    RatingLabel {
-                        rating: link.loser_info.rating,
-                        rating_change: link.loser_info.rating_change,
-                        is_winner: false,
-                    }
+                PlayerLabel {
+                    id: &link.loser_id,
+                    info: &link.loser_info,
+                    erdos: link.erdos_number - 1,
                 }
             }
         }
@@ -71,16 +93,87 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
 }
 
 #[inline_props]
-fn UserLabel<'a>(cx: Scope<'a>, id: &'a str, title: &'a str) -> Element {
-    cx.render(rsx!("{id}"))
+fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32) -> Element {
+    let title = if info.title.is_empty() {
+        None
+    } else {
+        Some(rsx!(
+            span {
+                u_text: "lg amber-600",
+                "{info.title}",
+            }
+        ))
+    };
+    let rating_change = format!("{:+}", info.rating_change);
+    cx.render(rsx!(
+        title
+        span {
+            // u_m: "1",
+            u_p: "0.5",
+            u_text: "xs fuchsia-900",
+            u_font: "black",
+            span {
+                class: "i-fa6-solid:chess-king",
+            }
+            span {
+                class: "i-fa6-solid:hashtag",
+            }
+            "{erdos}"
+        }
+        span {
+            u_font: "bold",
+            u_text: "lg",
+            u_p: "1",
+            "{id}",
+        }
+        span {
+            u_p: "1",
+            "({info.rating}) {rating_change}",
+        }
+    ))
 }
 
 #[inline_props]
-fn RatingLabel(cx: Scope, rating: u32, rating_change: i32, is_winner: bool) -> Element {
-    cx.render(if *is_winner {
-        rsx!("{rating}+{rating_change}")
+fn TimeControlLabel<'a>(cx: Scope<'a>, time_control: &'a TimeControl) -> Element {
+    let time_control_icon = match time_control.game_type {
+        TimeControlType::Blitz => "i-mdi:fire",
+        TimeControlType::Rapid => "i-mdi:rabbit",
+        TimeControlType::Classical => "i-mdi:turtle",
+    };
+    let time_control_sig = format!("{}+{}", time_control.main / 60, time_control.increment);
+    cx.render(rsx!(
+        span {
+            u_p: "2",
+            span {
+                class: "{time_control_icon}",
+            }
+            "{time_control_sig}"
+        }
+    ))
+}
+
+#[inline_props]
+fn GameResultLabel<'a>(cx: Scope<'a>, move_count: u32, termination: &'a Termination) -> Element {
+    let moves_str = if move_count % 2 == 1 {
+        format!("{}.5", move_count / 2)
     } else {
-        let abs_rating_change = -rating_change;
-        rsx!("{rating}-{abs_rating_change}")
-    })
+        format!("{}", move_count / 2)
+    };
+    let termination_icon = match termination {
+        Termination::Checkmate => "i-fa6-solid:hashtag",
+        Termination::Resign => "i-fa6-regular:flag",
+        Termination::Time => "i-fa6-regular:clock",
+    };
+    cx.render(rsx!(
+        span {
+            class: "i-fa-solid:mouse",
+        }
+        "{moves_str}"
+        span {
+            class: "i-fa-solid:arrow-right",
+        }
+        span {
+            class: "{termination_icon}",
+        }
+    ))
 }

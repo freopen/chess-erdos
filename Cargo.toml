@@ -43,7 +43,7 @@ tracing-opentelemetry = "0.17.2"
 tracing-subscriber = { version = "0.3.11", features = ["env-filter", "json"] }
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
 
