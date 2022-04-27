@@ -48,6 +48,7 @@ fn build_erdos_chains(user: User, db: &Database) -> Result<ErdosChains> {
             .erdos_links
             .into_iter()
             .map(|x| expand_erdos_chain(x, db))
+            .rev()
             .collect::<Result<Vec<_>>>()?,
     })
 }

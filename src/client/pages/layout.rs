@@ -39,8 +39,6 @@ pub fn Layout<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
                 }
             }
             main {
-                u_flex: "~",
-                u_justify: "center",
                 children
             }
         }

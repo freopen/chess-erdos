@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
 use crate::{
@@ -6,15 +7,24 @@ use crate::{
 };
 
 #[inline_props]
-pub fn ErdosChainList<'a>(cx: Scope<'a>, id: &'a str, chain: &'a Vec<ErdosLink>) -> Element {
+pub fn ErdosChainList<'a>(
+    cx: Scope<'a>,
+    id: &'a str,
+    chain: &'a Vec<ErdosLink>,
+    to: Option<&'a DateTime<Utc>>,
+) -> Element {
     let mut winner: &str = id;
     let erdos = chain[0].erdos_number;
     cx.render(rsx! (
         div {
+            class: "snap-center",
+            u_display: "inline-block",
+            u_align: "top",
+            u_flex: "shrink-0",
+            u_m: "4",
             div {
                 u_text: "center 5xl",
                 u_font: "black",
-                u_m: "8",
                 span {
                     class: "i-fa6-solid:chess-king",
                 }
@@ -22,6 +32,23 @@ pub fn ErdosChainList<'a>(cx: Scope<'a>, id: &'a str, chain: &'a Vec<ErdosLink>)
                     class: "i-fa6-solid:hashtag",
                 }
                 "{erdos}"
+            }
+            div {
+                u_text: "center",
+                "from: "
+                Time {
+                    time: &chain[0].time,
+                }
+            }
+            div {
+                u_text: "center",
+                u_m: "b-8",
+                "to: "
+                to.as_ref().map_or(rsx!("now"), |to| rsx!(
+                    Time {
+                        time: to,
+                    }
+                ))
             }
             chain.iter().map(|link| {
                 let winner = std::mem::replace(&mut winner, &link.loser_id);
