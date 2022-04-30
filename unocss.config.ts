@@ -15,7 +15,9 @@ function extractorDioxus(): Extractor {
         extract({ code }) {
             let result = new Set<string>();
             for (const match of code.matchAll(re_class)) {
-                result.add(match[1]);
+                for (let value of match[1].split(" ")) {
+                    result.add(value);
+                }
             }
             for (const match of code.matchAll(re_attributify)) {
                 for (let value of match[2].split(" ")) {
@@ -43,4 +45,5 @@ export default defineConfig({
     ],
     extractors: [extractorDioxus()],
     theme: {},
+    rules: [["w-max-content", { width: "max-content" }]],
 });

@@ -15,7 +15,7 @@ pub fn app(cx: Scope) -> Element {
                         home::Home {}
                     }
                     Route {
-                        to: "/user/:id",
+                        to: "/@/:id",
                         erdos_chains::ErdosChains {}
                     }
                     Redirect {

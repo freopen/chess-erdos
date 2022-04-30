@@ -17,7 +17,7 @@ pub fn ErdosChainList<'a>(
     let erdos = chain[0].erdos_number;
     cx.render(rsx! (
         div {
-            class: "snap-center",
+            class: "snap-start last:snap-end",
             u_display: "inline-block",
             u_align: "top",
             u_flex: "shrink-0",
@@ -78,41 +78,47 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
         "i-fa-solid:circle"
     };
     cx.render(rsx! (
-        div {
-            u_w: "full",
+        a {
+            href: "https://lichess.org/{link.game_id}",
             div {
-                u_p: "1",
-                Time {
-                    time: &link.time,
+                u_w: "full",
+                u_bg: "hover:sky-100",
+                u_border: "rounded",
+                u_transition: "~ all duration-300",
+                div {
+                    u_p: "1",
+                    Time {
+                        time: &link.time,
+                    }
+                    TimeControlLabel {
+                        time_control: &link.time_control,
+                    }
+                    GameResultLabel {
+                        move_count: link.move_count,
+                        termination: &link.termination,
+                    }
                 }
-                TimeControlLabel {
-                    time_control: &link.time_control,
+                div {
+                    u_m: "l-12",
+                    span {
+                        class: "{winner_color}",
+                    }
+                    PlayerLabel {
+                        id: winner,
+                        info: &link.winner_info,
+                        erdos: link.erdos_number,
+                    }
                 }
-                GameResultLabel {
-                    move_count: link.move_count,
-                    termination: &link.termination,
-                }
-            }
-            div {
-                u_m: "l-12",
-                span {
-                    class: "{winner_color}",
-                }
-                PlayerLabel {
-                    id: winner,
-                    info: &link.winner_info,
-                    erdos: link.erdos_number,
-                }
-            }
-            div {
-                u_m: "l-12",
-                span {
-                    class: "{loser_color}",
-                }
-                PlayerLabel {
-                    id: &link.loser_id,
-                    info: &link.loser_info,
-                    erdos: link.erdos_number - 1,
+                div {
+                    u_m: "l-12",
+                    span {
+                        class: "{loser_color}",
+                    }
+                    PlayerLabel {
+                        id: &link.loser_id,
+                        info: &link.loser_info,
+                        erdos: link.erdos_number - 1,
+                    }
                 }
             }
         }
@@ -126,6 +132,8 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
     } else {
         Some(rsx!(
             span {
+                u_p: "l-0.5",
+                u_font: "bold",
                 u_text: "lg amber-600",
                 "{info.title}",
             }
@@ -133,29 +141,50 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
     };
     let rating_change = format!("{:+}", info.rating_change);
     cx.render(rsx!(
-        title
-        span {
-            // u_m: "1",
-            u_p: "0.5",
-            u_text: "xs fuchsia-900",
-            u_font: "black",
+        Link {
+            to: "/@/{id}",
             span {
-                class: "i-fa6-solid:chess-king",
+                u_p: "0.5",
+                u_text: "xs fuchsia-900",
+                u_font: "black",
+                u_bg: "hover:sky-300",
+                u_border: "rounded",
+                u_transition: "~ all duration-300",
+                span {
+                    class: "i-fa6-solid:chess-king",
+                }
+                span {
+                    class: "i-fa6-solid:hashtag",
+                }
+                "{erdos}"
             }
-            span {
-                class: "i-fa6-solid:hashtag",
-            }
-            "{erdos}"
         }
-        span {
+        title
+        a {
+            href: "https://lichess.org/@/{id}",
             u_font: "bold",
             u_text: "lg",
+            u_bg: "hover:sky-300",
+            u_border: "rounded",
+            u_transition: "~ all duration-300",
             u_p: "1",
             "{id}",
         }
         span {
-            u_p: "1",
-            "({info.rating}) {rating_change}",
+            "({info.rating})",
+        }
+        if info.rating_change >= 0 {
+            rsx!(span{
+                u_p: "1",
+                u_text: "green-600",
+                "{rating_change}"
+            })
+        } else {
+            rsx!(span{
+                u_p: "1",
+                u_text: "red-600",
+                "{rating_change}"
+            })
         }
     ))
 }
@@ -168,9 +197,20 @@ fn TimeControlLabel<'a>(cx: Scope<'a>, time_control: &'a TimeControl) -> Element
         TimeControlType::Classical => "i-mdi:turtle",
     };
     let time_control_sig = format!("{}+{}", time_control.main / 60, time_control.increment);
+    let hint = format!(
+        "{} game: {} minutes of main time plus {} seconds of increment each turn",
+        match time_control.game_type {
+            TimeControlType::Blitz => "Blitz",
+            TimeControlType::Rapid => "Rapid",
+            TimeControlType::Classical => "Classical",
+        },
+        time_control.main / 60,
+        time_control.increment
+    );
     cx.render(rsx!(
         span {
             u_p: "2",
+            title: "{hint}",
             span {
                 class: "{time_control_icon}",
             }
@@ -191,16 +231,28 @@ fn GameResultLabel<'a>(cx: Scope<'a>, move_count: u32, termination: &'a Terminat
         Termination::Resign => "i-fa6-regular:flag",
         Termination::Time => "i-fa6-regular:clock",
     };
+    let hint = format!(
+        "Game ended after {} moves by {}",
+        moves_str,
+        match termination {
+            Termination::Checkmate => "checkmate",
+            Termination::Resign => "resignation",
+            Termination::Time => "timeout",
+        }
+    );
     cx.render(rsx!(
         span {
-            class: "i-fa-solid:mouse",
-        }
-        "{moves_str}"
-        span {
-            class: "i-fa-solid:arrow-right",
-        }
-        span {
-            class: "{termination_icon}",
+            title: "{hint}",
+            span {
+                class: "i-fa-solid:mouse",
+            }
+            "{moves_str}"
+            span {
+                class: "i-fa-solid:arrow-right",
+            }
+            span {
+                class: "{termination_icon}",
+            }
         }
     ))
 }

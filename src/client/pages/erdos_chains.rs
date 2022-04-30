@@ -4,12 +4,11 @@ use crate::{data::ErdosChains, client::{components::ErdosChainList, uno::UnoAttr
 
 pub fn ErdosChains(cx: Scope) -> Element {
     let route = use_route(&cx);
-    let id = route.segment("id").unwrap();
+    let id = route.segment("id").unwrap().to_string();
     let erdos_chains = {
-        let id = id.to_string();
-        use_future(&cx, (), |_| async move {
+        use_future(&cx, (&id,), |(id,)| async move {
             pot::from_slice::<ErdosChains>(
-                &reqwest::get(format!("http://192.168.1.98:3000/api/erdos_chains/{id}"))
+                &reqwest::get(format!("http://localhost:3000/api/erdos_chains/{id}"))
                     .await
                     .unwrap()
                     .bytes()
@@ -19,18 +18,21 @@ pub fn ErdosChains(cx: Scope) -> Element {
             .unwrap()
         })
     };
+
     if let Some(erdos_chains) = erdos_chains.value() {
         let mut to = None;
         cx.render(rsx! (
             div {
                 class: "snap-x",
                 u_flex: "~ nowrap",
-                u_overflow: "x-scroll",
+                // u_overflow: "x-auto",
                 erdos_chains.erdos_chains.iter().map(|chain| {
                     let prev_to = to.replace(&chain[0].time);
+                    let key = chain[0].erdos_number;
                     rsx!(
                         ErdosChainList {
-                            id: id,
+                            key: "{key}",
+                            id: &erdos_chains.id,
                             chain: chain,
                             to: prev_to,
                         }
