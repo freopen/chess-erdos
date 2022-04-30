@@ -1,50 +1,109 @@
 use dioxus::prelude::*;
+use reqwest::StatusCode;
 
-use crate::{data::ErdosChains, client::{components::ErdosChainList, uno::UnoAttributes}};
+use crate::{
+    client::{components::{ErdosChainList, WCN, Time, WC_TIME}, uno::UnoAttributes},
+    data::ErdosChains,
+    util::ERDOS_ID,
+};
+
+fn WCErdosChains(cx: Scope) -> Element {
+    cx.render(rsx!(
+        div {
+            class: "w-max-content",
+            div {
+                u_text: "center 5xl",
+                u_font: "black",
+                WCN{}
+                "0"
+            }
+            div {
+                u_text: "center",
+                "from: "
+                Time {
+                    time: &WC_TIME,
+                }
+            }
+            div {
+                u_text: "center",
+                u_m: "b-8",
+                "to: now"
+            }
+            a {
+                href: "https://en.wikipedia.org/wiki/World_Chess_Championship_2013",
+                u_text: "sky-600",
+                u_underline: "~",
+                "WCC 2013"
+            }
+        }
+    ))
+}
 
 pub fn ErdosChains(cx: Scope) -> Element {
     let route = use_route(&cx);
     let id = route.segment("id").unwrap().to_string();
+    if id.to_lowercase() == ERDOS_ID.to_lowercase() {
+        return cx.render(rsx!(
+            WCErdosChains{}
+        ))
+    }
+
     let erdos_chains = {
         use_future(&cx, (&id,), |(id,)| async move {
-            pot::from_slice::<ErdosChains>(
-                &reqwest::get(format!("http://localhost:3000/api/erdos_chains/{id}"))
-                    .await
-                    .unwrap()
-                    .bytes()
-                    .await
-                    .unwrap(),
-            )
-            .unwrap()
+            let resp = reqwest::get(format!("http://localhost:3000/api/erdos_chains/{id}"))
+                .await
+                .unwrap();
+            if resp.status() == StatusCode::NOT_FOUND {
+                None
+            } else {
+                assert!(resp.status().is_success());
+                Some(pot::from_slice::<ErdosChains>(&resp.bytes().await.unwrap()).unwrap())
+            }
         })
     };
 
-    if let Some(erdos_chains) = erdos_chains.value() {
-        let mut to = None;
-        cx.render(rsx! (
-            div {
-                class: "snap-x",
-                u_flex: "~ nowrap",
-                // u_overflow: "x-auto",
-                erdos_chains.erdos_chains.iter().map(|chain| {
-                    let prev_to = to.replace(&chain[0].time);
-                    let key = chain[0].erdos_number;
-                    rsx!(
-                        ErdosChainList {
-                            key: "{key}",
-                            id: &erdos_chains.id,
-                            chain: chain,
-                            to: prev_to,
-                        }
-                    )
-                })
+    cx.render(if let Some(erdos_chains) = erdos_chains.value() {
+        if let Some(erdos_chains) = erdos_chains {
+            if erdos_chains.erdos_chains.is_empty() {
+                rsx! (
+                    div {
+                        "User found, but they has no " WCN{} " yet."
+                    }
+                )
+            } else {
+                let mut to = None;
+                rsx! (
+                    div {
+                        class: "snap-x",
+                        u_flex: "~ nowrap",
+                        // u_overflow: "x-auto",
+                        erdos_chains.erdos_chains.iter().map(|chain| {
+                            let prev_to = to.replace(&chain[0].time);
+                            let key = chain[0].erdos_number;
+                            rsx!(
+                                ErdosChainList {
+                                    key: "{key}",
+                                    id: &erdos_chains.id,
+                                    chain: chain,
+                                    to: prev_to,
+                                }
+                            )
+                        })
+                    }
+                )
             }
-        ))
+        } else {
+            rsx! (
+                div {
+                    "User not found"
+                }
+            )
+        }
     } else {
-        cx.render(rsx! (
+        rsx! (
             div {
-                "loading"
+                "Loading..."
             }
-        ))
-    }
+        )
+    })
 }

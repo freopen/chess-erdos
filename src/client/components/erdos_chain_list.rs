@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
 use crate::{
-    client::{components::Time, uno::UnoAttributes},
+    client::{components::{Time, WCN}, uno::UnoAttributes},
     data::{ErdosLink, PlayerInfo, Termination, TimeControl, TimeControlType},
 };
 
@@ -25,12 +25,7 @@ pub fn ErdosChainList<'a>(
             div {
                 u_text: "center 5xl",
                 u_font: "black",
-                span {
-                    class: "i-fa6-solid:chess-king",
-                }
-                span {
-                    class: "i-fa6-solid:hashtag",
-                }
+                WCN {}
                 "{erdos}"
             }
             div {
