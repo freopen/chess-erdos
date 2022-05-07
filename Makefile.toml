@@ -1,3 +1,14 @@
+[tasks.release]
+run_task = { name = ["generate-prod", "move-to-generated", "vite-prod", "build-server"] }
+
+[tasks.build-server]
+command = "cargo"
+args = ["build", "--profile", "release-server", "--bins"]
+
+[tasks.vite-prod]
+command = "pnpm"
+args = ["vite", "build"]
+
 [tasks.watch]
 run_task = { name = ["build-dev"] }
 watch = { watch = ["src/"] }
@@ -8,9 +19,16 @@ run_task = { name = ["generate-dev", "move-to-generated"] }
 [tasks.generate-dev]
 run_task = { name = ["generate-wasm-dev", "generate-uno"], parallel = true }
 
+[tasks.generate-prod]
+run_task = { name = ["generate-wasm-prod", "generate-uno"], parallel = true }
+
 [tasks.generate-wasm-dev]
 command = "wasm-pack"
 args = ["build", "--dev", "-d", "generated/wasm-building", "-t", "web"]
+
+[tasks.generate-wasm-prod]
+command = "wasm-pack"
+args = ["build", "-d", "generated/wasm-building", "-t", "web"]
 
 [tasks.generate-uno]
 command = "pnpm"

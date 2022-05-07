@@ -1,10 +1,11 @@
-use std::{net::SocketAddr, str::FromStr, time::Duration};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use axum::{extract::Path, http::StatusCode, routing::get, Extension, Router};
 use bonsaidb::{core::schema::SerializedCollection, local::Database};
 use headers::{CacheControl, ContentType, HeaderMap, HeaderMapExt};
 use include_dir::{include_dir, Dir};
+use tracing::Level;
 
 use crate::data::{ErdosChains, ErdosLink, User};
 
@@ -13,7 +14,6 @@ static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'static [u8]) {
     if let Some(file) = DIST.get_file(format!("assets/{path}")) {
         let mut header_map = HeaderMap::new();
-        dbg!(file.path());
         let mime_type = mime_guess::from_path(file.path()).first_or_octet_stream();
         header_map.typed_insert(
             CacheControl::new().with_max_age(Duration::from_secs(365 * 24 * 60 * 60)),
@@ -25,6 +25,7 @@ async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'s
     }
 }
 
+#[tracing::instrument(skip_all, fields(erdos_number = %erdos_link.erdos_number))]
 fn expand_erdos_chain(erdos_link: ErdosLink, db: &Database) -> Result<Vec<ErdosLink>> {
     let mut erdos_links = vec![erdos_link];
     for erdos_number in (1..erdos_links[0].erdos_number).rev() {
@@ -41,6 +42,7 @@ fn expand_erdos_chain(erdos_link: ErdosLink, db: &Database) -> Result<Vec<ErdosL
     Ok(erdos_links)
 }
 
+#[tracing::instrument(skip_all, fields(user = %user.id))]
 fn build_erdos_chains(user: User, db: &Database) -> Result<ErdosChains> {
     Ok(ErdosChains {
         id: user.id.clone(),
@@ -80,12 +82,17 @@ async fn index_handler() -> (HeaderMap, &'static [u8]) {
 
 pub async fn serve(db: &Database) -> Result<()> {
     let app = Router::new()
-        .route("/assets/*path", get(static_handler))
         .route("/api/erdos_chains/:id", get(erdos_chains_handler))
+        .route("/assets/*path", get(static_handler))
         .fallback(get(index_handler))
-        .layer(Extension(db.clone()));
-    let addr = SocketAddr::from_str(&std::env::var("HTTP_ADDRESS")?)?;
-    axum::Server::bind(&addr)
+        .layer(Extension(db.clone()))
+        .layer(
+            tower_http::trace::TraceLayer::new_for_http()
+                .make_span_with(tower_http::trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_request(tower_http::trace::DefaultOnRequest::new().level(Level::INFO))
+                .on_response(tower_http::trace::DefaultOnResponse::new().level(Level::INFO)),
+        );
+    axum::Server::bind(&([127, 0, 0, 1], 3001).into())
         .serve(app.into_make_service())
         .await?;
     Ok(())

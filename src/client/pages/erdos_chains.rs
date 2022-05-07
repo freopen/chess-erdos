@@ -78,16 +78,25 @@ pub fn ErdosChains(cx: Scope) -> Element {
                         u_flex: "~ nowrap",
                         // u_overflow: "x-auto",
                         erdos_chains.erdos_chains.iter().map(|chain| {
-                            let prev_to = to.replace(&chain[0].time);
                             let key = chain[0].erdos_number;
-                            rsx!(
-                                ErdosChainList {
-                                    key: "{key}",
-                                    id: &erdos_chains.id,
-                                    chain: chain,
-                                    to: prev_to,
-                                }
-                            )
+                            if let Some(prev_to) = to.replace(&chain[0].time) {
+                                rsx!(
+                                    ErdosChainList {
+                                        key: "{key}",
+                                        id: &erdos_chains.id,
+                                        chain: chain,
+                                        to: prev_to,
+                                    }
+                                )
+                            } else {
+                                rsx!(
+                                    ErdosChainList {
+                                        key: "{key}",
+                                        id: &erdos_chains.id,
+                                        chain: chain,
+                                    }
+                                )
+                            }
                         })
                     }
                 )

@@ -12,38 +12,46 @@ bonsaidb = { version = "0.4.1", features = ["local"] }
 chrono = { version = "0.4.19", features = ["serde", "wasmbind"] }
 chrono-humanize = "0.2.1"
 console_error_panic_hook = "0.1.7"
-dioxus = { version = "0.2.3", features = ["web", "router"] }
-dioxus-core = "0.2.0"
+dioxus = { version = "0.2.4", features = ["web", "router"] }
+dioxus-core = "0.2.1"
 js-sys = "0.3.57"
 lazy_static = "1.4.0"
-log = "0.4.16"
+log = "0.4.17"
 pot = "1.0.2"
-reqwest = "0.11.10"
-serde = "1.0.136"
+reqwest = { version="0.11.10", features = ["rustls-tls-native-roots"], default-features = false }
+serde = "1.0.137"
 wasm-bindgen = "0.2.80"
 wasm-logger = "0.2.0"
 
 [target.'cfg(unix)'.dependencies]
-anyhow = "1.0.56"
-axum = "0.5.1"
+anyhow = { version = "1.0.57", features = ["backtrace"] }
+axum = "0.5.4"
 futures = "0.3.21"
 headers = "0.3.7"
 include_dir = "0.7.2"
 metrics = "0.18.1"
 metrics-exporter-prometheus = "0.9.0"
-metrics-util = "0.12.0"
+metrics-util = "0.12.1"
 mime_guess = "2.0.4"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.10.0"
+opentelemetry-otlp = { version = "0.10.0", features = ["tls-roots"] }
 pgn-reader = "0.20.0"
-shakmaty = "0.21.0"
-tokio = { version = "1.17.0", features = ["full"] }
-tracing = "0.1.32"
+shakmaty = "0.21.1"
+tokio = { version = "1.18.1", features = ["full"] }
+tonic = "0.6.2"
+tower-http = { version = "0.3.2", features = ["trace"] }
+tracing = "0.1.34"
 tracing-opentelemetry = "0.17.2"
 tracing-subscriber = { version = "0.3.11", features = ["env-filter", "json"] }
 
 [profile.release]
 opt-level = "z"
+lto = true
+codegen-units = 1
+
+[profile.release-server]
+inherits = "release"
+opt-level = 3
 lto = true
 codegen-units = 1
 
