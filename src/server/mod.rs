@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bonsaidb::local::{
-    config::{Builder, StorageConfiguration},
+    config::{Builder, StorageConfiguration, Compression},
     Database,
 };
 use opentelemetry::KeyValue;
@@ -53,11 +53,13 @@ pub async fn serve() -> Result<()> {
         .install()?;
     register_metrics();
 
-    let db = Database::open::<DbSchema>(StorageConfiguration::new("schema.bonsaidb"))?;
+    let db = Database::open::<DbSchema>(
+        StorageConfiguration::new("schema.bonsaidb").default_compression(Compression::Lz4),
+    )?;
 
     let result = tokio::select! {
       v = http::serve(&db) => v,
-    //   v = process_archive::process_new_archives_task(&db) => v,
+      v = process_archive::process_new_archives_task(&db) => v,
     };
 
     opentelemetry::global::shutdown_tracer_provider();

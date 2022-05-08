@@ -2,8 +2,8 @@ use std::process::{Command, Stdio};
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::{ensure, Context, Result};
-use bonsaidb::{core::schema::SerializedCollection, local::Database};
-use chrono::{TimeZone, Utc};
+use bonsaidb::{core::{schema::SerializedCollection, connection::Connection}, local::Database};
+use chrono::{TimeZone, Utc, DateTime};
 use metrics::increment_counter;
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use reqwest::get;
@@ -15,10 +15,37 @@ use crate::{
     data::{
         ErdosLink, PlayerInfo, ServerMetadata, Termination, TimeControl, TimeControlType, User,
     },
-    util::{user_to_erdos_number, user_to_erdos_number_at, ERDOS_ID, ERDOS_NUMBER_INF},
+    util::ERDOS_ID,
 };
 
 const LICHESS_DB_LIST: &str = "https://database.lichess.org/standard/list.txt";
+pub const ERDOS_NUMBER_INF: u32 = u32::MAX - 1;
+
+fn user_to_erdos_number(user: &User) -> u32 {
+  if user.id == ERDOS_ID {
+    0
+  } else {
+    user
+      .erdos_links
+      .last()
+      .map(|link| link.erdos_number)
+      .unwrap_or(ERDOS_NUMBER_INF)
+  }
+}
+
+fn user_to_erdos_number_at(user: &User, time: DateTime<Utc>) -> u32 {
+  if user.id == ERDOS_ID {
+    0
+  } else {
+    user
+      .erdos_links
+      .iter()
+      .filter(|erdos_link| erdos_link.time < time)
+      .last()
+      .map(|erdos_link| erdos_link.erdos_number)
+      .unwrap_or(ERDOS_NUMBER_INF)
+  }
+}
 
 #[derive(Clone)]
 struct ColorInfo {
@@ -266,10 +293,8 @@ impl<'a> Visitor for GameParser<'a> {
                         self.skip = true;
                     }
                     unknown_result => {
-                        unreachable!(
-                            "Unexpected Result: {}",
-                            std::str::from_utf8(unknown_result).unwrap()
-                        );
+                        increment_counter!("games_skipped", "reason" => format!("result: {}", std::str::from_utf8(unknown_result).unwrap()));
+                        self.skip = true;
                     }
                 }
             }
@@ -392,7 +417,6 @@ impl<'a> Visitor for GameParser<'a> {
                 );
                 self.erdos_link.erdos_number = loser_erdos_number + 1;
                 winner.contents.erdos_links.push(self.erdos_link.clone());
-                dbg!(&winner.contents);
                 winner.update(self.db).unwrap();
                 *self.users_cache.get_mut(&self.user_id).unwrap() = self.erdos_link.erdos_number;
             } else {
@@ -402,6 +426,7 @@ impl<'a> Visitor for GameParser<'a> {
     }
 }
 
+#[tracing::instrument(skip(db))]
 fn process_archive(db: &Database, url: &str) -> Result<()> {
     let mut curl_child = Command::new("curl")
         .arg(url)
@@ -420,6 +445,7 @@ fn process_archive(db: &Database, url: &str) -> Result<()> {
     pgn_read.read_all(&mut game_parser)?;
     ensure!(curl_child.wait()?.success(), "Curl failed");
     ensure!(pbzip_child.wait()?.success(), "Pbzip failed");
+    db.compact()?;
     Ok(())
 }
 

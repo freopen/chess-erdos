@@ -50,7 +50,7 @@ pub fn ErdosChains(cx: Scope) -> Element {
 
     let erdos_chains = {
         use_future(&cx, (&id,), |(id,)| async move {
-            let resp = reqwest::get(format!("http://localhost:3000/api/erdos_chains/{id}"))
+            let resp = reqwest::get(format!("https://freopen.org/api/erdos_chains/{id}"))
                 .await
                 .unwrap();
             if resp.status() == StatusCode::NOT_FOUND {

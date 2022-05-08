@@ -1,42 +1,49 @@
 use dioxus::prelude::*;
 
-use crate::client::{uno::UnoAttributes, components::WCN};
+use crate::client::{components::WCN, uno::UnoAttributes};
 
 #[inline_props]
 fn Header<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
-    cx.render(rsx!(
-        h2 {
-            u_text: "2xl",
-            u_m: "t-4 b-2",
-            children
-        }
-    ))
+    cx.render(rsx!(h2 {
+        u_text: "2xl",
+        u_m: "t-4 b-2",
+        children
+    }))
 }
 
 #[inline_props]
 fn Paragraph<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
-    cx.render(rsx!(
-        p {
-            u_m: "4",
-            children
-        }
-    ))
+    cx.render(rsx!(p { u_m: "4", children }))
 }
 
 #[inline_props]
 fn Link<'a>(cx: Scope<'a>, href: &'a str, children: Element<'a>) -> Element {
-    cx.render(rsx!(
-        a {
-            href: "{href}",
-            u_text: "sky-600",
-            u_underline: "~",
-            children
-        }
-    ))
+    cx.render(rsx!(a {
+        href: "{href}",
+        u_text: "sky-600",
+        u_underline: "~",
+        children
+    }))
 }
 
-
 pub fn Home(cx: Scope) -> Element {
+    let last_processed_future = {
+        use_future(&cx, (), |_| async move {
+            reqwest::get("https://freopen.org/api/last_processed")
+                .await
+                .unwrap()
+                .text()
+                .await
+                .unwrap()
+        })
+    };
+    let last_processed_block = last_processed_future.value().map(|last_processed| {
+        rsx! (
+            Paragraph {
+                "Last processed game log archive: { last_processed }."
+            }
+        )
+    });
     cx.render(rsx! (
         div {
             u_w: "screen",
@@ -50,6 +57,7 @@ pub fn Home(cx: Scope) -> Element {
                 "This website calculates the World Chess Champion Number (" WCN{} ") for every "
                 "Lichess user."
             }
+            last_processed_block
             Header {
                 "What is the World Chess Champion Number?"
             }

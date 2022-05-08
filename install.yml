@@ -2,52 +2,28 @@
 - name: Install Chess Erdos backend
   hosts: server
   tasks:
-    - name: Update rust
-      command: rustup update
-      register: rustup_update_cmd
-      changed_when: '"unchanged" not in rustup_update_cmd.stdout'
-    - name: Create the user
-      user:
+    - name: Create chess_erdos user
+      ansible.builtin.user:
         name: chess_erdos
         state: present
         home: /home/chess_erdos
-    - name: Create temp build directory
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: build
-      register: build_dir
     - name: Copy source to build directory
       ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "{{ build_dir.path }}"
-      loop:
-        - proto
-        - src
-        - build.rs
-        - Cargo.lock
-        - Cargo.toml
-    - name: Build the binary
-      command:
-        chdir: "{{ build_dir.path }}"
-        cmd: cargo install --path . --root /home/chess_erdos
-      environment:
-        RUSTC_WRAPPER: sccache
-      changed_when: true
-      async: 1200
-      poll: 10
+        src: "target/release-server/chess-erdos"
+        dest: "/home/chess_erdos/chess-erdos"
+        owner: chess_erdos
+        group: chess_erdos
+        mode: 0755
     - name: Copy systemd unit file
-      copy:
-        src: systemd.conf
+      ansible.builtin.template:
+        src: systemd.conf.j2
         dest: /etc/systemd/system/chess_erdos.service
         owner: root
         group: root
         mode: 0644
     - name: Enable and restart service
-      systemd:
+      ansible.builtin.systemd:
         name: chess_erdos
         state: restarted
         enabled: yes
-    - name: Remove temp build directory
-      file:
-        path: "{{ build_dir.path }}"
-        state: absent
+        daemon_reload: yes

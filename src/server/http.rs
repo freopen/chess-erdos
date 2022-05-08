@@ -7,7 +7,7 @@ use headers::{CacheControl, ContentType, HeaderMap, HeaderMapExt};
 use include_dir::{include_dir, Dir};
 use tracing::Level;
 
-use crate::data::{ErdosChains, ErdosLink, User};
+use crate::data::{ErdosChains, ErdosLink, User, ServerMetadata};
 
 static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 
@@ -80,9 +80,26 @@ async fn index_handler() -> (HeaderMap, &'static [u8]) {
     (header_map, DIST.get_file("index.html").unwrap().contents())
 }
 
+async fn last_processed_handler(
+    Extension(db): Extension<Database>,
+) -> (HeaderMap, String) {
+    let mut header_map = HeaderMap::new();
+    header_map.typed_insert(
+        CacheControl::new().with_max_age(Duration::from_secs(60)),
+    );
+    header_map.typed_insert(ContentType::text());
+    let last_archive = ServerMetadata::get((), &db)
+        .unwrap()
+        .map(|x| x.contents.last_processed_archive)
+        .unwrap_or_default();
+    let last_time = last_archive[(last_archive.len() - 15)..(last_archive.len() - 8)].to_string();
+    (header_map, last_time)
+}
+
 pub async fn serve(db: &Database) -> Result<()> {
     let app = Router::new()
         .route("/api/erdos_chains/:id", get(erdos_chains_handler))
+        .route("/api/last_processed", get(last_processed_handler))
         .route("/assets/*path", get(static_handler))
         .fallback(get(index_handler))
         .layer(Extension(db.clone()))
