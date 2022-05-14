@@ -57,7 +57,7 @@ pub fn ErdosChains(cx: Scope) -> Element {
                 None
             } else {
                 assert!(resp.status().is_success());
-                Some(pot::from_slice::<ErdosChains>(&resp.bytes().await.unwrap()).unwrap())
+                Some(rmp_serde::decode::from_slice::<ErdosChains>(&resp.bytes().await.unwrap()).unwrap())
             }
         })
     };

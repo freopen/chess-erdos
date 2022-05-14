@@ -5,10 +5,9 @@ authors = ["Aleksei Zolotov <freopen@freopen.org>"]
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-bonsaidb = { version = "0.4.1", features = ["local", "local-compression"] }
 chrono = { version = "0.4.19", features = ["serde", "wasmbind"] }
 chrono-humanize = "0.2.1"
 console_error_panic_hook = "0.1.7"
@@ -17,9 +16,9 @@ dioxus-core = "0.2.1"
 js-sys = "0.3.57"
 lazy_static = "1.4.0"
 log = "0.4.17"
-pot = "1.0.2"
 reqwest = { version="0.11.10", features = ["rustls-tls-native-roots"], default-features = false }
-serde = "1.0.137"
+rmp-serde = "1.1.0"
+serde = { version = "1.0.137", features = ["derive"] }
 wasm-bindgen = "0.2.80"
 wasm-logger = "0.2.0"
 
@@ -36,8 +35,9 @@ mime_guess = "2.0.4"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.10.0", features = ["tls-roots"] }
 pgn-reader = "0.20.0"
+rkyvdb = { version = "0.1.0", path = "../rkyvdb" }
 shakmaty = "0.21.1"
-tokio = { version = "1.18.1", features = ["full"] }
+tokio = { version = "1.18.2", features = ["full"] }
 tonic = "0.6.2"
 tower-http = { version = "0.3.2", features = ["trace"] }
 tracing = "0.1.34"

@@ -2,5 +2,5 @@
 /generated/*
 !/generated/.gitkeep
 /node_modules/
-/schema.bonsaidb/
+/db/
 /target/

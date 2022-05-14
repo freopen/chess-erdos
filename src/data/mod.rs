@@ -1,12 +1,9 @@
-use bonsaidb::core::schema::{Collection, Schema};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-mod case_insensitive_string;
+#[cfg(unix)]
+mod collections;
 
-use case_insensitive_string::CaseInsensitiveString;
-
-#[derive(Debug, Serialize, Deserialize, Collection)]
-#[collection(name = "users", primary_key = CaseInsensitiveString, natural_id = |user: &User| Some(user.id.as_str().into()))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: String,
     pub erdos_links: Vec<ErdosLink>,
@@ -62,12 +59,7 @@ pub struct ErdosChains {
     pub erdos_chains: Vec<Vec<ErdosLink>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Collection)]
-#[collection(name = "server-metadata", primary_key = (), natural_id = |_| Some(()))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ServerMetadata {
     pub last_processed_archive: String,
 }
-
-#[derive(Debug, Schema)]
-#[schema(name="schema", collections = [User, ServerMetadata])]
-pub struct DbSchema;

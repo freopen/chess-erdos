@@ -2,11 +2,11 @@ use std::process::{Command, Stdio};
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::{ensure, Context, Result};
-use bonsaidb::{core::{schema::SerializedCollection, connection::Connection}, local::Database};
-use chrono::{TimeZone, Utc, DateTime};
+use chrono::{DateTime, Utc, TimeZone};
 use metrics::increment_counter;
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use reqwest::get;
+use rkyvdb::{Collection, Database};
 use shakmaty::san::Suffix;
 use tokio::{task::spawn_blocking, time::sleep};
 use tracing::info;
@@ -22,29 +22,27 @@ const LICHESS_DB_LIST: &str = "https://database.lichess.org/standard/list.txt";
 pub const ERDOS_NUMBER_INF: u32 = u32::MAX - 1;
 
 fn user_to_erdos_number(user: &User) -> u32 {
-  if user.id == ERDOS_ID {
-    0
-  } else {
-    user
-      .erdos_links
-      .last()
-      .map(|link| link.erdos_number)
-      .unwrap_or(ERDOS_NUMBER_INF)
-  }
+    if user.id == ERDOS_ID {
+        0
+    } else {
+        user.erdos_links
+            .last()
+            .map(|link| link.erdos_number)
+            .unwrap_or(ERDOS_NUMBER_INF)
+    }
 }
 
 fn user_to_erdos_number_at(user: &User, time: DateTime<Utc>) -> u32 {
-  if user.id == ERDOS_ID {
-    0
-  } else {
-    user
-      .erdos_links
-      .iter()
-      .filter(|erdos_link| erdos_link.time < time)
-      .last()
-      .map(|erdos_link| erdos_link.erdos_number)
-      .unwrap_or(ERDOS_NUMBER_INF)
-  }
+    if user.id == ERDOS_ID {
+        0
+    } else {
+        user.erdos_links
+            .iter()
+            .filter(|erdos_link| erdos_link.time < time)
+            .last()
+            .map(|erdos_link| erdos_link.erdos_number)
+            .unwrap_or(ERDOS_NUMBER_INF)
+    }
 }
 
 #[derive(Clone)]
@@ -130,15 +128,16 @@ impl<'a> GameParser<'a> {
         if let Some(erdos_number) = self.users_cache.get(id) {
             Ok(*erdos_number)
         } else if let Some(user) = User::get(id, self.db)? {
-            let erdos_number = user_to_erdos_number(&user.contents);
+            let erdos_number = user_to_erdos_number(&user);
             self.users_cache.insert(id.to_string(), erdos_number);
             Ok(erdos_number)
         } else {
-            User {
-                id: id.to_string(),
-                erdos_links: vec![],
-            }
-            .push_into(self.db)?;
+            User::modify(id, self.db, |_| {
+                Some(User {
+                    id: id.to_string(),
+                    erdos_links: vec![],
+                })
+            })?;
             self.users_cache.insert(id.to_string(), ERDOS_NUMBER_INF);
             Ok(ERDOS_NUMBER_INF)
         }
@@ -394,7 +393,7 @@ impl<'a> Visitor for GameParser<'a> {
             }
             self.erdos_link.time =
                 chrono::DateTime::from_utc(chrono::NaiveDateTime::new(self.date, self.time), Utc);
-            let mut winner = User::get(&self.user_id, self.db)
+            let winner = User::get(&self.user_id, self.db)
                 .unwrap()
                 .expect("User should be in DB at this point");
             let loser_erdos_number = if self.erdos_link.loser_id == ERDOS_ID {
@@ -403,12 +402,11 @@ impl<'a> Visitor for GameParser<'a> {
                 user_to_erdos_number_at(
                     &User::get(&self.erdos_link.loser_id, self.db)
                         .unwrap()
-                        .expect("User should be in DB at this point")
-                        .contents,
+                        .expect("User should be in DB at this point"),
                     self.erdos_link.time,
                 )
             };
-            let winner_erdos_number = user_to_erdos_number(&winner.contents);
+            let winner_erdos_number = user_to_erdos_number(&winner);
             if winner_erdos_number > loser_erdos_number + 1 {
                 increment_counter!(
                   "erdos_updated",
@@ -416,8 +414,12 @@ impl<'a> Visitor for GameParser<'a> {
                   "old" => format!("{}", winner_erdos_number)
                 );
                 self.erdos_link.erdos_number = loser_erdos_number + 1;
-                winner.contents.erdos_links.push(self.erdos_link.clone());
-                winner.update(self.db).unwrap();
+                User::modify(&self.user_id, self.db, |user| {
+                    let mut user = user.expect("User should be in DB at this point");
+                    user.erdos_links.push(self.erdos_link.clone());
+                    Some(user)
+                })
+                .unwrap();
                 *self.users_cache.get_mut(&self.user_id).unwrap() = self.erdos_link.erdos_number;
             } else {
                 increment_counter!("games_skipped", "reason" => "erdos: slow");
@@ -445,7 +447,6 @@ fn process_archive(db: &Database, url: &str) -> Result<()> {
     pgn_read.read_all(&mut game_parser)?;
     ensure!(curl_child.wait()?.success(), "Curl failed");
     ensure!(pbzip_child.wait()?.success(), "Pbzip failed");
-    db.compact()?;
     Ok(())
 }
 
@@ -453,8 +454,8 @@ pub async fn process_new_archives_task(db: &Database) -> Result<()> {
     loop {
         let last_archive = ServerMetadata::get((), db)
             .unwrap()
-            .map(|x| x.contents.last_processed_archive)
-            .unwrap_or_default();
+            .map(|x| x.last_processed_archive)
+            .unwrap_or_else(|| String::from("https://database.lichess.org/standard/lichess_db_standard_rated_2019-06.pgn.bz2"));
         let lichess_archives: Vec<String> = get(LICHESS_DB_LIST)
             .await?
             .text()
@@ -473,10 +474,11 @@ pub async fn process_new_archives_task(db: &Database) -> Result<()> {
                 spawn_blocking(move || process_archive(&db, &archive)).await??;
             }
             info!(%archive, "Archive processed");
-            ServerMetadata {
-                last_processed_archive: archive,
-            }
-            .overwrite_into((), db)?;
+            ServerMetadata::modify((), db, |_| {
+                Some(ServerMetadata {
+                    last_processed_archive: archive,
+                })
+            })?;
         }
         sleep(Duration::from_secs(60 * 60)).await;
     }

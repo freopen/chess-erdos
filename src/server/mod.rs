@@ -1,13 +1,9 @@
 use anyhow::Result;
-use bonsaidb::local::{
-    config::{Builder, StorageConfiguration, Compression},
-    Database,
-};
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
-use crate::data::DbSchema;
+use crate::data::{User, ServerMetadata};
 
 mod http;
 mod process_archive;
@@ -53,9 +49,10 @@ pub async fn serve() -> Result<()> {
         .install()?;
     register_metrics();
 
-    let db = Database::open::<DbSchema>(
-        StorageConfiguration::new("schema.bonsaidb").default_compression(Compression::Lz4),
-    )?;
+    let db = rkyvdb::Database::build()
+        .add_collection::<User>()
+        .add_collection::<ServerMetadata>()
+        .open("db")?;
 
     let result = tokio::select! {
       v = http::serve(&db) => v,
