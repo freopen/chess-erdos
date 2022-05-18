@@ -154,8 +154,8 @@ pub fn Home(cx: Scope) -> Element {
                 }
                 ". The backend is written in Rust, using "
                 Link {
-                    href: "https://bonsaidb.io",
-                    "BonsaiDB"
+                    href: "https://github.com/rust-rocksdb/rust-rocksdb",
+                    "RocksDB Rust wrapper"
                 }
                 " for database and "
                 Link {

@@ -74,7 +74,7 @@ async fn erdos_chains_handler(
 
 async fn index_handler() -> (HeaderMap, &'static [u8]) {
     let mut header_map = HeaderMap::new();
-    header_map.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(10)));
+    header_map.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60)));
     header_map.typed_insert(ContentType::html());
     (header_map, DIST.get_file("index.html").unwrap().contents())
 }
