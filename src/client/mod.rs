@@ -2,7 +2,6 @@ use crate::client::pages::app;
 
 mod components;
 mod pages;
-mod uno;
 
 pub fn launch() {
     wasm_logger::init(wasm_logger::Config::default());

@@ -1,27 +1,23 @@
 use dioxus::prelude::*;
 
-use crate::client::{components::WCN, uno::UnoAttributes};
+use crate::client::{components::WCN};
 
 #[inline_props]
 fn Header<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
     cx.render(rsx!(h2 {
-        u_text: "2xl",
-        u_m: "t-4 b-2",
         children
     }))
 }
 
 #[inline_props]
 fn Paragraph<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
-    cx.render(rsx!(p { u_m: "4", children }))
+    cx.render(rsx!(p { children }))
 }
 
 #[inline_props]
 fn Link<'a>(cx: Scope<'a>, href: &'a str, children: Element<'a>) -> Element {
     cx.render(rsx!(a {
         href: "{href}",
-        u_text: "sky-600",
-        u_underline: "~",
         children
     }))
 }
@@ -46,11 +42,7 @@ pub fn Home(cx: Scope) -> Element {
     });
     cx.render(rsx! (
         div {
-            u_w: "screen",
-            u_max_w: "prose",
             h1 {
-                u_text: "2xl sm:3xl md:4xl lg:5xl",
-                u_m: "b-4",
                 "World Chess Champion number" 
             }
             Paragraph {
@@ -115,8 +107,6 @@ pub fn Home(cx: Scope) -> Element {
                 "First we assign DrNykterstein a " WCN{} "0. Then scan every single Lichess game "
                 "in chronological order that matches the following criteria: "
                 ul {
-                    u_p: "2",
-                    u_list: "disc inside",
                     li { "Rated game" }
                     li { "Classical, Rapid or Blitz time control" }
                     li { "At least 10 moves were played" }

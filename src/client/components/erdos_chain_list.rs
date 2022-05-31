@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
 use crate::{
-    client::{components::{Time, WCN}, uno::UnoAttributes},
+    client::components::{Time, WCN},
     data::{ErdosLink, PlayerInfo, Termination, TimeControl, TimeControlType},
 };
 
@@ -17,27 +17,17 @@ pub fn ErdosChainList<'a>(
     let erdos = chain[0].erdos_number;
     cx.render(rsx! (
         div {
-            class: "snap-start last:snap-end",
-            u_display: "inline-block",
-            u_align: "top",
-            u_flex: "shrink-0",
-            u_m: "4",
             div {
-                u_text: "center 5xl",
-                u_font: "black",
                 WCN {}
                 "{erdos}"
             }
             div {
-                u_text: "center",
                 "from: "
                 Time {
                     time: &chain[0].time,
                 }
             }
             div {
-                u_text: "center",
-                u_m: "b-8",
                 "to: "
                 to.as_ref().map_or(rsx!("now"), |to| rsx!(
                     Time {
@@ -76,12 +66,7 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
         a {
             href: "https://lichess.org/{link.game_id}",
             div {
-                u_w: "full",
-                u_bg: "hover:sky-100",
-                u_border: "rounded",
-                u_transition: "~ all duration-300",
                 div {
-                    u_p: "1",
                     Time {
                         time: &link.time,
                     }
@@ -94,7 +79,6 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
                     }
                 }
                 div {
-                    u_m: "l-12",
                     span {
                         class: "{winner_color}",
                     }
@@ -105,7 +89,6 @@ fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Ele
                     }
                 }
                 div {
-                    u_m: "l-12",
                     span {
                         class: "{loser_color}",
                     }
@@ -127,9 +110,6 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
     } else {
         Some(rsx!(
             span {
-                u_p: "l-0.5",
-                u_font: "bold",
-                u_text: "lg amber-600",
                 "{info.title}",
             }
         ))
@@ -139,12 +119,6 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
         Link {
             to: "/@/{id}",
             span {
-                u_p: "0.5",
-                u_text: "xs fuchsia-900",
-                u_font: "black",
-                u_bg: "hover:sky-300",
-                u_border: "rounded",
-                u_transition: "~ all duration-300",
                 span {
                     class: "i-fa6-solid:chess-king",
                 }
@@ -157,12 +131,6 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
         title
         a {
             href: "https://lichess.org/@/{id}",
-            u_font: "bold",
-            u_text: "lg",
-            u_bg: "hover:sky-300",
-            u_border: "rounded",
-            u_transition: "~ all duration-300",
-            u_p: "1",
             "{id}",
         }
         span {
@@ -170,14 +138,10 @@ fn PlayerLabel<'a>(cx: Scope<'a>, id: &'a str, info: &'a PlayerInfo, erdos: u32)
         }
         if info.rating_change >= 0 {
             rsx!(span{
-                u_p: "1",
-                u_text: "green-600",
                 "{rating_change}"
             })
         } else {
             rsx!(span{
-                u_p: "1",
-                u_text: "red-600",
                 "{rating_change}"
             })
         }
@@ -204,7 +168,6 @@ fn TimeControlLabel<'a>(cx: Scope<'a>, time_control: &'a TimeControl) -> Element
     );
     cx.render(rsx!(
         span {
-            u_p: "2",
             title: "{hint}",
             span {
                 class: "{time_control_icon}",

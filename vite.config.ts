@@ -1,13 +1,15 @@
 import { defineConfig } from "vite";
-import { ViteRsw } from "vite-plugin-rsw";
 import { createHtmlPlugin } from "vite-plugin-html";
+import Icons from "unplugin-icons/vite";
 
 export default defineConfig({
     plugins: [
-        // ViteRsw(),
         createHtmlPlugin({
-            template: "html/index.html",
+            template: "src/client/index.html",
             minify: true,
+        }),
+        Icons({
+            compiler: "raw",
         }),
     ],
     assetsInclude: ["generated/wasm/chess_erdos_bg.wasm"],

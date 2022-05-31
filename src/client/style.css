@@ -1,0 +1,5 @@
+
+.pseudo-test:after {
+    content: url('fa6-solid/chess-king.svg');
+    vertical-align: -0.125em;
+}
