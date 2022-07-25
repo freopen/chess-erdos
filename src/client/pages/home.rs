@@ -91,7 +91,7 @@ pub fn Home(cx: Scope) -> Element {
                     "DrNykterstein"
                 }
                 " reports that he lost just 16% of his blitz games. Nevertheless sometimes he "
-                "loses to a weaker player, than they lose to even weaker player until eventually "
+                "loses to a weaker player, then they lose to even weaker player until eventually "
                 "nearly everyone who won a single rated game on Lichess has a " WCN{} " and "
                 "therefore (indirectly) won against Magnus Carlsen. This works similarly to the "
                 Link {
@@ -129,7 +129,7 @@ pub fn Home(cx: Scope) -> Element {
                 "Why this specific set of rules?"
             }
             Paragraph {
-                "The egligible game rule set is selected to balance between giving " WCN{} " to "
+                "The eligible game rule set is selected to balance between giving " WCN{} " to "
                 "as many Lichess users as possible and to avoid strange cases when someone wins a "
                 "superbullet game against +1500 rated player and skew " WCN{} " for everyone. "
                 "I decided to include Blitz games because lots of people never play longer "
