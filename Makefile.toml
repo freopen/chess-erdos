@@ -1,5 +1,5 @@
 [tasks.release]
-run_task = { name = ["generate-prod", "move-to-generated", "vite-prod", "build-server"] }
+run_task = { name = ["fetch-npm", "generate-prod", "move-to-generated", "vite-prod", "build-server"] }
 
 [tasks.build-server]
 command = "cargo"
@@ -28,7 +28,11 @@ args = ["build", "--dev", "-d", "generated/wasm-building", "-t", "web"]
 
 [tasks.generate-wasm-prod]
 command = "wasm-pack"
-args = ["build", "-d", "generated/wasm-building", "-t", "web"]
+args = ["-v", "build", "-d", "generated/wasm-building", "-t", "web"]
+
+[tasks.fetch-npm]
+command = "pnpm"
+args = ["install"]
 
 [tasks.generate-uno]
 command = "pnpm"

@@ -436,7 +436,9 @@ fn process_archive(db: &Database, url: &str) -> Result<()> {
         .stderr(Stdio::null())
         .spawn()?;
     let curl_output = curl_child.stdout.take().context("No curl stdout")?;
-    let mut pbzip_child = Command::new("pbunzip2")
+    let mut pbzip_child = Command::new("pzstd")
+        .arg("-d")
+        .arg("-c")
         .stdin(curl_output)
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -455,7 +457,7 @@ pub async fn process_new_archives_task(db: &Database) -> Result<()> {
         let last_archive = ServerMetadata::get((), db)
             .unwrap()
             .map(|x| x.last_processed_archive)
-            .unwrap_or_else(|| String::from("https://database.lichess.org/standard/lichess_db_standard_rated_2019-06.pgn.bz2"));
+            .unwrap_or_else(|| String::from(""));
         let lichess_archives: Vec<String> = get(LICHESS_DB_LIST)
             .await?
             .text()

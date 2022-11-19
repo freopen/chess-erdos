@@ -1,0 +1,12 @@
+[package]
+name = "rkyvdb"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rmp-serde = "1.1.0"
+rocksdb = { version = "0.18.0", features = ["zstd"], default-features=false }
+serde = "1.0.137"
+thiserror = "1.0.31"

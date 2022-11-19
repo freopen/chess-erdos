@@ -16,15 +16,12 @@ fn register_metrics() {
 }
 
 pub async fn serve() -> Result<()> {
-    let mut map = tonic::metadata::MetadataMap::new();
-    map.insert("api-key", std::env::var("NEWRELIC_LICENSE_KEY")?.parse()?);
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
             opentelemetry_otlp::new_exporter()
                 .tonic()
-                .with_endpoint("https://otlp.eu01.nr-data.net:4317/v1/traces")
-                .with_metadata(map),
+                .with_endpoint("http://localhost:4317/"),
         )
         .with_trace_config(opentelemetry::sdk::trace::config().with_resource(
             opentelemetry::sdk::Resource::new(vec![
