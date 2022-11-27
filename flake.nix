@@ -69,7 +69,8 @@
             };
             systemd.services.chess_erdos = {
               wantedBy = [ "multi-user.target" ];
-              after = [ "network.target" ];
+              after = [ "network-online.target" ];
+              wants = [ "network-online.target" ];
               path = with pkgs; [ curl zstd ];
               serviceConfig = {
                 User = "chess_erdos";
@@ -77,6 +78,7 @@
                 WorkingDirectory = "/var/lib/chess_erdos";
                 StateDirectory = "chess_erdos";
                 StateDirectoryMode = "0700";
+                Restart = "always";
               };
             };
           };
