@@ -38,9 +38,10 @@
                 ]
               )
             ];
-            buildInputs = with channels.nixpkgs; [ openssl curl zstd ];
+            buildInputs = with channels.nixpkgs; [ openssl curl zstd protobuf ];
             LIBCLANG_PATH = "${channels.nixpkgs.libclang.lib}/lib";
             CURL_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
+            PROTOC = "${channels.nixpkgs.protobuf}/bin/protoc";
           } ''
           cp -R $src/* .
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
