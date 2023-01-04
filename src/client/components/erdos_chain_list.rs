@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
 use crate::{
-    client::{components::{Time, WCN}, uno::UnoAttributes},
+    client::{
+        components::{Time, WCN},
+        uno::UnoAttributes,
+    },
     data::{ErdosLink, PlayerInfo, Termination, TimeControl, TimeControlType},
 };
 

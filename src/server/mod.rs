@@ -3,7 +3,7 @@ use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
-use crate::data::{User, ServerMetadata};
+use crate::data::{ServerMetadata, User};
 
 mod http;
 mod process_archive;

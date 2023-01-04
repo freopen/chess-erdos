@@ -29,8 +29,8 @@ async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'s
 fn expand_erdos_chain(erdos_link: ErdosLink, db: &Database) -> Result<Vec<ErdosLink>> {
     let mut erdos_links = vec![erdos_link];
     for erdos_number in (1..erdos_links[0].erdos_number).rev() {
-        let next_user =
-            User::get(erdos_links.last().unwrap().loser_id.as_str(), db)?.context("Broken chain in DB")?;
+        let next_user = User::get(erdos_links.last().unwrap().loser_id.as_str(), db)?
+            .context("Broken chain in DB")?;
         let next_erdos_link = next_user
             .erdos_links
             .into_iter()
@@ -96,7 +96,7 @@ pub async fn serve(db: &Database) -> Result<()> {
         .route("/api/erdos_chains/:id", get(erdos_chains_handler))
         .route("/api/last_processed", get(last_processed_handler))
         .route("/assets/*path", get(static_handler))
-        .fallback(get(index_handler))
+        .fallback(index_handler)
         .layer(Extension(db.clone()))
         .layer(
             tower_http::trace::TraceLayer::new_for_http()

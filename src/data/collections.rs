@@ -1,6 +1,6 @@
-use rkyvdb::{Collection, CaseInsensitiveString};
+use rkyvdb::{CaseInsensitiveString, Collection};
 
-use super::{User, ServerMetadata};
+use super::{ServerMetadata, User};
 
 impl Collection for User {
     type KeyType = CaseInsensitiveString;

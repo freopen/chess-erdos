@@ -18,7 +18,7 @@ macro_rules! uno_attribute {
 }
 
 pub trait UnoAttributes {
-    uno_attribute!{
+    uno_attribute! {
         u_font: "u-font";
         u_text: "u-text";
         u_underline: "u-underline";

@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::{ensure, Context, Result};
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, TimeZone, Utc};
 use metrics::increment_counter;
 use pgn_reader::{RawHeader, SanPlus, Skip, Visitor};
 use reqwest::get;

@@ -2,7 +2,10 @@ use dioxus::prelude::*;
 use reqwest::StatusCode;
 
 use crate::{
-    client::{components::{ErdosChainList, WCN, Time, WC_TIME}, uno::UnoAttributes},
+    client::{
+        components::{ErdosChainList, Time, WCN, WC_TIME},
+        uno::UnoAttributes,
+    },
     data::ErdosChains,
     util::ERDOS_ID,
 };
@@ -43,9 +46,7 @@ pub fn ErdosChains(cx: Scope) -> Element {
     let route = use_route(&cx);
     let id = route.segment("id").unwrap().to_string();
     if id.to_lowercase() == ERDOS_ID.to_lowercase() {
-        return cx.render(rsx!(
-            WCErdosChains{}
-        ))
+        return cx.render(rsx!(WCErdosChains {}));
     }
 
     let erdos_chains = {
@@ -57,7 +58,10 @@ pub fn ErdosChains(cx: Scope) -> Element {
                 None
             } else {
                 assert!(resp.status().is_success());
-                Some(rmp_serde::decode::from_slice::<ErdosChains>(&resp.bytes().await.unwrap()).unwrap())
+                Some(
+                    rmp_serde::decode::from_slice::<ErdosChains>(&resp.bytes().await.unwrap())
+                        .unwrap(),
+                )
             }
         })
     };
