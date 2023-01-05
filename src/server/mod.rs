@@ -1,11 +1,10 @@
 use anyhow::Result;
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
+use rocksdb_ext::DatasetConfig;
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
-use crate::data::{ServerMetadata, User};
-
-mod http;
+// mod http;
 mod process_archive;
 
 fn register_metrics() {
@@ -46,14 +45,27 @@ pub async fn serve() -> Result<()> {
         .install()?;
     register_metrics();
 
-    let db = rkyvdb::Database::build()
-        .add_collection::<User>()
-        .add_collection::<ServerMetadata>()
-        .open("db")?;
+    let mut db_config = rocksdb_ext::DBConfig::default();
+    db_config.opts.create_if_missing(true);
+    db_config.opts.create_missing_column_families(true);
+    let users_config = rocksdb_ext::CollectionConfig::new("users");
+    let erdos_links_config = rocksdb_ext::CollectionConfig::new("erdos_links");
+    let last_processed_archive_config =
+        rocksdb_ext::CollectionConfig::new("last_processed_archive");
+    let game_checkpoint_config = rocksdb_ext::CollectionConfig::new("game_checkpoint");
+    users_config.update_db_config(&mut db_config);
+    erdos_links_config.update_db_config(&mut db_config);
+    last_processed_archive_config.update_db_config(&mut db_config);
+    game_checkpoint_config.update_db_config(&mut db_config);
+    let db = db_config.open(std::path::Path::new("db"))?;
+    let users = users_config.open(&db);
+    let erdos_links = erdos_links_config.open(&db);
+    let last_processed_archive = last_processed_archive_config.open(&db);
+    let game_checkpoint = game_checkpoint_config.open(&db);
 
     let result = tokio::select! {
-      v = http::serve(&db) => v,
-      v = process_archive::process_new_archives_task(&db) => v,
+      // v = http::serve(&users, &erdos_links, &last_processed_archive) => v,
+      v = process_archive::process_new_archives_task(&users, &erdos_links, &last_processed_archive, &game_checkpoint) => v,
     };
 
     opentelemetry::global::shutdown_tracer_provider();

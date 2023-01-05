@@ -16,6 +16,10 @@ dioxus-core = "0.2.1"
 js-sys = "0.3.57"
 lazy_static = "1.4.0"
 log = "0.4.17"
+malachite = { version = "0.3.1", default-features = false, features = [
+    "naturals_and_integers",
+    "enable_serde",
+] }
 reqwest = { version = "0.11.10", features = [
     "rustls-tls-native-roots",
 ], default-features = false }
@@ -37,7 +41,7 @@ mime_guess = "2.0.4"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.11.0", features = ["tls-roots"] }
 pgn-reader = "0.22.0"
-rkyvdb = { version = "0.1.0", path = "./rkyvdb" }
+rocksdb-ext = { version = "0.1.0", path = "../rocksdb-ext" }
 shakmaty = "0.23.0"
 tokio = { version = "1.18.2", features = ["full"] }
 tonic = "0.8.3"
@@ -56,9 +60,6 @@ inherits = "release"
 opt-level = 3
 lto = true
 codegen-units = 1
-
-[package.metadata.wasm-pack.profile.release]
-# wasm-opt = false
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true

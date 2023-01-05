@@ -46,6 +46,7 @@
       '';
       devShells.x86_64-linux.default = pkgs.mkShell {
         inputsFrom = [ self.packages.x86_64-linux.default ];
+        LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
         packages = (with pkgs; [ nil nixfmt ])
           ++ (with fenix.packages.x86_64-linux;
             [
