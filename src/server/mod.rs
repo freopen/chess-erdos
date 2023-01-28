@@ -32,11 +32,11 @@ pub async fn serve() -> Result<()> {
         .install_batch(opentelemetry::runtime::Tokio)?;
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new("INFO"))
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_span_events(FmtSpan::FULL)
-                .compact(),
-        )
+        // .with(
+        //     tracing_subscriber::fmt::layer()
+        //         .with_span_events(FmtSpan::FULL)
+        //         .compact(),
+        // )
         .with(tracing_opentelemetry::layer().with_tracer(tracer))
         .try_init()?;
     metrics_exporter_prometheus::PrometheusBuilder::new()
