@@ -1,13 +1,13 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
-use anyhow::{Context, Result};
-use axum::{extract::Path, http::StatusCode, routing::get, Extension, Router};
+use anyhow::Result;
+use axum::{extract::Path, http::StatusCode, routing::get, Extension, Json, Router};
 use headers::{CacheControl, ContentType, HeaderMap, HeaderMapExt};
 use include_dir::{include_dir, Dir};
-use rkyvdb::{Collection, Database};
+use malachite::Natural;
 use tracing::Level;
 
-use crate::data::{ErdosChains, ErdosLink, ServerMetadata, User};
+use crate::data::{db::DB, ErdosLink, User};
 
 static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 
@@ -25,51 +25,78 @@ async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'s
     }
 }
 
-#[tracing::instrument(skip_all, fields(erdos_number = %erdos_link.erdos_number))]
-fn expand_erdos_chain(erdos_link: ErdosLink, db: &Database) -> Result<Vec<ErdosLink>> {
-    let mut erdos_links = vec![erdos_link];
-    for erdos_number in (1..erdos_links[0].erdos_number).rev() {
-        let next_user = User::get(erdos_links.last().unwrap().loser_id.as_str(), db)?
-            .context("Broken chain in DB")?;
-        let next_erdos_link = next_user
-            .erdos_links
-            .into_iter()
-            .find(|erdos_link| erdos_link.erdos_number == erdos_number)
-            .context("Broken chain in DB")?;
-        erdos_links.push(next_erdos_link);
-    }
-    Ok(erdos_links)
-}
-
-#[tracing::instrument(skip_all, fields(user = %user.id))]
-fn build_erdos_chains(user: User, db: &Database) -> Result<ErdosChains> {
-    Ok(ErdosChains {
-        id: user.id.to_string(),
-        erdos_chains: user
-            .erdos_links
-            .into_iter()
-            .map(|x| expand_erdos_chain(x, db))
-            .rev()
-            .collect::<Result<Vec<_>>>()?,
-    })
-}
-
-async fn erdos_chains_handler(
+async fn user_handler(
     Path(id): Path<String>,
-    Extension(db): Extension<Database>,
-) -> (StatusCode, HeaderMap, Vec<u8>) {
+    Extension(db): Extension<DB>,
+) -> Result<(HeaderMap, Json<User>), StatusCode> {
     let mut headers = HeaderMap::new();
-    headers.typed_insert(ContentType::octet_stream());
     headers.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60 * 60)));
-    if let Some(user) = User::get(&id, &db).unwrap() {
-        (
-            StatusCode::OK,
-            headers,
-            rmp_serde::encode::to_vec(&build_erdos_chains(user, &db).unwrap()).unwrap(),
-        )
+    if let Some(user) = db.users.get(&id).unwrap() {
+        Ok((headers, Json(user)))
     } else {
-        (StatusCode::NOT_FOUND, headers, vec![])
+        Err(StatusCode::NOT_FOUND)
     }
+}
+
+async fn chain_handler(
+    Path((uid, erdos_number, path_number)): Path<(String, u32, String)>,
+    Extension(db): Extension<DB>,
+) -> Result<(HeaderMap, Json<Vec<ErdosLink>>), (StatusCode, String)> {
+    let path_number = Natural::from_str(&path_number).map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            "Path number is not a string".to_string(),
+        )
+    })?;
+    let user = db
+        .users
+        .get(&uid.to_ascii_lowercase())
+        .unwrap()
+        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+    let meta = user
+        .erdos_link_meta
+        .iter()
+        .find(|meta| meta.erdos_number == erdos_number)
+        .ok_or((StatusCode::NOT_FOUND, "Erdos number not found".to_string()))?;
+    if meta.path_count <= path_number {
+        return Err((
+            StatusCode::NOT_FOUND,
+            "Path number is not found".to_string(),
+        ));
+    }
+
+    let mut paths_left = path_number;
+    let mut erdos_chain = vec![];
+    let mut current_user = uid.to_ascii_lowercase();
+
+    for current_erdos_number in (1..erdos_number + 1).rev() {
+        let mut current_link = 0;
+        erdos_chain.push(loop {
+            dbg!(
+                &current_user,
+                &current_erdos_number,
+                &current_link,
+                &paths_left
+            );
+            let erdos_link = db
+                .erdos_links
+                .get(&(current_user.clone(), current_erdos_number, current_link))
+                .unwrap()
+                .expect("Intermediate chain not found");
+            dbg!(&erdos_link);
+            if erdos_link.loser_path_count <= paths_left {
+                paths_left -= erdos_link.loser_path_count;
+                current_link += 1;
+            } else {
+                current_user = erdos_link.loser_id.to_ascii_lowercase();
+                break erdos_link;
+            }
+        })
+    }
+
+    let mut headers = HeaderMap::new();
+    headers.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60 * 60)));
+    Ok((headers, Json(erdos_chain)))
 }
 
 async fn index_handler() -> (HeaderMap, &'static [u8]) {
@@ -79,21 +106,26 @@ async fn index_handler() -> (HeaderMap, &'static [u8]) {
     (header_map, DIST.get_file("index.html").unwrap().contents())
 }
 
-async fn last_processed_handler(Extension(db): Extension<Database>) -> (HeaderMap, String) {
+async fn last_processed_handler(Extension(db): Extension<DB>) -> (HeaderMap, String) {
     let mut header_map = HeaderMap::new();
     header_map.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60)));
     header_map.typed_insert(ContentType::text());
-    let last_archive = ServerMetadata::get((), &db)
+    let last_archive = db
+        .last_processed_archive
+        .get(&())
         .unwrap()
-        .map(|x| x.last_processed_archive)
         .unwrap_or_default();
     let last_time = last_archive[(last_archive.len() - 15)..(last_archive.len() - 8)].to_string();
     (header_map, last_time)
 }
 
-pub async fn serve(db: &Database) -> Result<()> {
+pub async fn serve(db: &DB) -> Result<()> {
     let app = Router::new()
-        .route("/api/erdos_chains/:id", get(erdos_chains_handler))
+        .route("/api/user/:id", get(user_handler))
+        .route(
+            "/api/chain/:uid/:erdos_number/:path_number",
+            get(chain_handler),
+        )
         .route("/api/last_processed", get(last_processed_handler))
         .route("/assets/*path", get(static_handler))
         .fallback(index_handler)

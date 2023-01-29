@@ -3,7 +3,7 @@ use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use tracing_subscriber::{fmt::format::FmtSpan, prelude::*};
 
-// mod http;
+mod http;
 mod process_archive;
 
 fn register_metrics() {
@@ -47,7 +47,7 @@ pub async fn serve() -> Result<()> {
     let db = crate::data::db::DB::new()?;
 
     let result = tokio::select! {
-      // v = http::serve(&users, &erdos_links, &last_processed_archive) => v,
+      v = http::serve(&db) => v,
       v = process_archive::process_new_archives_task(&db) => v,
     };
 

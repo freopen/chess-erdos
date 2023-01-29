@@ -398,8 +398,6 @@ impl<'a> Visitor for GameParser<'a> {
                       "erdos_link_added",
                       "number" => format!("{winner_erdos}"),
                     );
-                    winner.erdos_link_meta[0].link_count += 1;
-                    winner.erdos_link_meta[0].path_count += &self.erdos_link.loser_path_count;
                     self.db
                         .erdos_links
                         .put(
@@ -411,6 +409,8 @@ impl<'a> Visitor for GameParser<'a> {
                             &self.erdos_link,
                         )
                         .unwrap();
+                    winner.erdos_link_meta[0].link_count += 1;
+                    winner.erdos_link_meta[0].path_count += &self.erdos_link.loser_path_count;
                     self.db
                         .users
                         .put(&winner.id.to_ascii_lowercase(), &winner)
