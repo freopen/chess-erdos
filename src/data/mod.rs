@@ -1,3 +1,6 @@
+pub mod db;
+
+use anyhow::Result;
 use malachite::Natural;
 use serde::{Deserialize, Serialize};
 
