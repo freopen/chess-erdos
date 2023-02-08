@@ -1,7 +1,14 @@
 use std::{str::FromStr, time::Duration};
 
-use anyhow::Result;
-use axum::{extract::Path, http::StatusCode, routing::get, Extension, Json, Router};
+use anyhow::{anyhow, Context};
+use axum::{
+    debug_handler,
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+    Extension, Json, Router,
+};
 use headers::{CacheControl, ContentType, HeaderMap, HeaderMapExt};
 use include_dir::{include_dir, Dir};
 use malachite::Natural;
@@ -11,6 +18,26 @@ use crate::data::{db::DB, ErdosLink, User};
 
 static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 
+struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", self.0)).into_response()
+    }
+}
+
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
+}
+
+type Result<T> = std::result::Result<T, AppError>;
+
+#[debug_handler]
 async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'static [u8]) {
     if let Some(file) = DIST.get_file(format!("assets/{path}")) {
         let mut header_map = HeaderMap::new();
@@ -25,44 +52,33 @@ async fn static_handler(Path(path): Path<String>) -> (StatusCode, HeaderMap, &'s
     }
 }
 
+#[debug_handler]
 async fn user_handler(
     Path(id): Path<String>,
     Extension(db): Extension<DB>,
-) -> Result<(HeaderMap, Json<User>), StatusCode> {
+) -> Result<(HeaderMap, Json<Option<User>>)> {
     let mut headers = HeaderMap::new();
     headers.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60 * 60)));
-    if let Some(user) = db.users.get(&id).unwrap() {
-        Ok((headers, Json(user)))
-    } else {
-        Err(StatusCode::NOT_FOUND)
-    }
+    Ok((headers, Json(db.users.get(&id)?)))
 }
 
+#[debug_handler]
 async fn chain_handler(
     Path((uid, erdos_number, path_number)): Path<(String, u32, String)>,
     Extension(db): Extension<DB>,
-) -> Result<(HeaderMap, Json<Vec<ErdosLink>>), (StatusCode, String)> {
-    let path_number = Natural::from_str(&path_number).map_err(|_| {
-        (
-            StatusCode::BAD_REQUEST,
-            "Path number is not a string".to_string(),
-        )
-    })?;
+) -> Result<(HeaderMap, Json<Vec<ErdosLink>>)> {
     let user = db
         .users
-        .get(&uid.to_ascii_lowercase())
-        .unwrap()
-        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+        .get(&uid.to_ascii_lowercase())?
+        .context("User not found")?;
     let meta = user
         .erdos_link_meta
         .iter()
         .find(|meta| meta.erdos_number == erdos_number)
-        .ok_or((StatusCode::NOT_FOUND, "Erdos number not found".to_string()))?;
-    if meta.path_count <= path_number {
-        return Err((
-            StatusCode::NOT_FOUND,
-            "Path number is not found".to_string(),
-        ));
+        .context("Erdos number not found")?;
+    let path_number = Natural::from_str(&path_number).or(Err(anyhow!("path_id didn't parse")))?;
+    if path_number >= meta.path_count {
+        return Err(anyhow!("path_number is too high").into());
     }
 
     let mut paths_left = path_number;
@@ -80,9 +96,8 @@ async fn chain_handler(
             );
             let erdos_link = db
                 .erdos_links
-                .get(&(current_user.clone(), current_erdos_number, current_link))
-                .unwrap()
-                .expect("Intermediate chain not found");
+                .get(&(current_user.clone(), current_erdos_number, current_link))?
+                .context("Intermediate chain not found")?;
             dbg!(&erdos_link);
             if erdos_link.loser_path_count <= paths_left {
                 paths_left -= erdos_link.loser_path_count;
@@ -99,6 +114,7 @@ async fn chain_handler(
     Ok((headers, Json(erdos_chain)))
 }
 
+#[debug_handler]
 async fn index_handler() -> (HeaderMap, &'static [u8]) {
     let mut header_map = HeaderMap::new();
     header_map.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60)));
@@ -106,6 +122,7 @@ async fn index_handler() -> (HeaderMap, &'static [u8]) {
     (header_map, DIST.get_file("index.html").unwrap().contents())
 }
 
+#[debug_handler]
 async fn last_processed_handler(Extension(db): Extension<DB>) -> (HeaderMap, String) {
     let mut header_map = HeaderMap::new();
     header_map.typed_insert(CacheControl::new().with_max_age(Duration::from_secs(60)));
@@ -119,7 +136,7 @@ async fn last_processed_handler(Extension(db): Extension<DB>) -> (HeaderMap, Str
     (header_map, last_time)
 }
 
-pub async fn serve(db: &DB) -> Result<()> {
+pub async fn serve(db: &DB) -> anyhow::Result<()> {
     let app = Router::new()
         .route("/api/user/:id", get(user_handler))
         .route(

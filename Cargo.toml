@@ -30,7 +30,7 @@ wasm-logger = "0.2.0"
 
 [target.'cfg(unix)'.dependencies]
 anyhow = { version = "1.0.57", features = ["backtrace"] }
-axum = "0.6.1"
+axum = { version = "0.6.4", features = ["macros"] }
 futures = "0.3.21"
 headers = "0.3.7"
 include_dir = "0.7.2"
