@@ -14,7 +14,7 @@ use include_dir::{include_dir, Dir};
 use malachite::Natural;
 use tracing::Level;
 
-use crate::data::{db::DB, ErdosLink, User};
+use crate::data::{db::DB, ErdosChainLink, User};
 
 static DIST: Dir = include_dir!("$CARGO_MANIFEST_DIR/generated/dist");
 
@@ -66,7 +66,7 @@ async fn user_handler(
 async fn chain_handler(
     Path((uid, erdos_number, path_number)): Path<(String, u32, String)>,
     Extension(db): Extension<DB>,
-) -> Result<(HeaderMap, Json<Vec<ErdosLink>>)> {
+) -> Result<(HeaderMap, Json<Vec<ErdosChainLink>>)> {
     let user = db
         .users
         .get(&uid.to_ascii_lowercase())?
@@ -104,7 +104,11 @@ async fn chain_handler(
                 current_link += 1;
             } else {
                 current_user = erdos_link.loser_id.to_ascii_lowercase();
-                break erdos_link;
+                break ErdosChainLink {
+                    link: erdos_link,
+                    link_number: current_link,
+                    path_number: paths_left.clone(),
+                };
             }
         })
     }

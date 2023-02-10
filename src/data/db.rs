@@ -1,3 +1,4 @@
+use anyhow::Result;
 use rocksdb_ext::{Collection, DatasetConfig};
 
 use crate::data::*;

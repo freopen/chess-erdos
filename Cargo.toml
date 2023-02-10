@@ -1,6 +1,6 @@
 [package]
 name = "chess-erdos"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Aleksei Zolotov <freopen@freopen.org>"]
 edition = "2021"
 
@@ -8,22 +8,23 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-chrono = { version = "0.4.19", features = ["serde", "wasmbind"] }
-chrono-humanize = "0.2.1"
+chrono = { version = "0.4.23", features = ["serde", "wasmbind"] }
+chrono-humanize = "0.2.2"
 console_error_panic_hook = "0.1.7"
-dioxus = { version = "0.2.4", features = ["web", "router"] }
-dioxus-core = "0.2.1"
-js-sys = "0.3.57"
+dioxus = "0.3.1"
+dioxus-router = { version = "0.3.0", features = ["web"] }
+dioxus-web = "0.3.0"
+js-sys = "0.3.61"
 lazy_static = "1.4.0"
 log = "0.4.17"
-malachite = { version = "0.3.1", default-features = false, features = [
+malachite = { version = "0.3.2", default-features = false, features = [
     "naturals_and_integers",
     "enable_serde",
 ] }
-reqwest = { version = "0.11.10", features = [
+reqwest = { version = "0.11.14", features = [
     "rustls-tls-native-roots",
+    "json",
 ], default-features = false }
-rmp-serde = "1.1.0"
 serde = { version = "1.0.137", features = ["derive"] }
 wasm-bindgen = "0.2.83"
 wasm-logger = "0.2.0"

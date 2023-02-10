@@ -1,61 +1,61 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
+use dioxus_router::use_route;
+use malachite::Natural;
 
 use crate::{
-    client::{
-        components::{Time, WCN},
-        uno::UnoAttributes,
-    },
-    data::{ErdosLink, PlayerInfo, Termination, TimeControl, TimeControlType},
+    client::components::wcn::WCN,
+    data::{ErdosChainLink, ErdosLink, Termination, TimeControl, TimeControlType, User},
 };
 
 #[inline_props]
-pub fn ErdosChainList<'a>(
-    cx: Scope<'a>,
-    id: &'a str,
-    chain: &'a Vec<ErdosLink>,
-    to: Option<&'a DateTime<Utc>>,
-) -> Element {
-    let mut winner: &str = id;
-    let erdos = chain[0].erdos_number;
+pub fn ErdosChain<'a>(cx: Scope<'a>, user: &'a User) -> Element {
+    let route = use_route(&cx);
+    let erdos_num = route
+        .parse_segment("erdos_num")
+        .transpose()
+        .unwrap()
+        .unwrap_or_else(|| user.erdos_link_meta[0].erdos_number);
+    let path_id = route
+        .parse_segment("path_id")
+        .transpose()
+        .unwrap()
+        .unwrap_or_else(|| user.erdos_link_meta[0].path_count)
+        - Natural::from(1);
+    let chain = use_future(
+        &cx,
+        (&user.id, &erdos_num, &path_id),
+        |(id, erdos_num, path_id)| async move {
+            reqwest::get(format!(
+                "https://freopen.org/api/chain/{id}/{erdos_num}/{path_id}"
+            ))
+            .await
+            .unwrap()
+            .json::<Vec<ErdosChainLink>>()
+            .await
+            .unwrap()
+        },
+    )
+    .value()
+    .unwrap();
+    let erdos_link_meta = user
+        .erdos_link_meta
+        .iter()
+        .find(|meta| meta.erdos_number == erdos_num)
+        .unwrap();
+    let mut current_winner = &user.id;
+    let mut current_erdos_num = erdos_num;
+    let mut current_link_count = erdos_link_meta.link_count;
     cx.render(rsx! (
         div {
-            class: "snap-start last:snap-end",
-            u_display: "inline-block",
-            u_align: "top",
-            u_flex: "shrink-0",
-            u_m: "4",
-            div {
-                u_text: "center 5xl",
-                u_font: "black",
-                WCN {}
-                "{erdos}"
-            }
-            div {
-                u_text: "center",
-                "from: "
-                Time {
-                    time: &chain[0].time,
-                }
-            }
-            div {
-                u_text: "center",
-                u_m: "b-8",
-                "to: "
-                to.as_ref().map_or(rsx!("now"), |to| rsx!(
-                    Time {
-                        time: to,
-                    }
-                ))
-            }
-            chain.iter().map(|link| {
-                let winner = std::mem::replace(&mut winner, &link.loser_id);
-                let key = link.erdos_number;
+            chain.iter().map(|chain_link| {
+                let winner = std::mem::replace(&mut current_winner, &chain_link.link.loser_id);
                 rsx!(
                     ErdosLinkCard {
-                        key: "{key}",
+                        key: "{current_erdos_num}",
+                        chain_link: chain_link,
                         winner: winner,
-                        link: link,
+
                     }
                 )
             })
@@ -64,7 +64,7 @@ pub fn ErdosChainList<'a>(
 }
 
 #[inline_props]
-fn ErdosLinkCard<'a>(cx: Scope<'a>, winner: &'a str, link: &'a ErdosLink) -> Element {
+fn ErdosLinkCard<'a>(cx: Scope<'a>, chain_link: &'a ErdosChainLink, winner: &'a str) -> Element {
     let winner_color = if link.winner_is_white {
         "i-fa-regular:circle"
     } else {

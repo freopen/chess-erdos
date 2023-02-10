@@ -1,6 +1,6 @@
+#[cfg(unix)]
 pub mod db;
 
-use anyhow::Result;
 use malachite::Natural;
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +32,13 @@ pub struct ErdosLink {
     pub time_control: TimeControl,
     pub winner_is_white: bool,
     pub termination: Termination,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ErdosChainLink {
+    pub link: ErdosLink,
+    pub link_number: u32,
+    pub path_number: Natural,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

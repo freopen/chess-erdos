@@ -48,6 +48,7 @@
         inputsFrom = [ self.packages.x86_64-linux.default ];
         LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
         CURL_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
+        API_URL = "http://localhost:5173/api";
         packages = (with pkgs; [ nil nixfmt ])
           ++ (with fenix.packages.x86_64-linux;
             [

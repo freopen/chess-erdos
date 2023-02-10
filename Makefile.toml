@@ -1,5 +1,11 @@
 [tasks.release]
-run_task = { name = ["fetch-npm", "generate-prod", "move-to-generated", "vite-prod", "build-server"] }
+run_task = { name = [
+    "fetch-npm",
+    "generate-prod",
+    "move-to-generated",
+    "vite-prod",
+    "build-server",
+] }
 
 [tasks.build-server]
 command = "cargo"
@@ -17,10 +23,10 @@ watch = { watch = ["src/"] }
 run_task = { name = ["generate-dev", "move-to-generated"] }
 
 [tasks.generate-dev]
-run_task = { name = ["generate-wasm-dev", "generate-uno"], parallel = true }
+run_task = { name = ["generate-wasm-dev"], parallel = true }
 
 [tasks.generate-prod]
-run_task = { name = ["generate-wasm-prod", "generate-uno"], parallel = true }
+run_task = { name = ["generate-wasm-prod"], parallel = true }
 
 [tasks.generate-wasm-dev]
 command = "wasm-pack"
@@ -34,19 +40,8 @@ args = ["-v", "build", "-d", "generated/wasm-building", "-t", "web"]
 command = "pnpm"
 args = ["install"]
 
-[tasks.generate-uno]
-command = "pnpm"
-args = [
-    "unocss",
-    "src/client/pages/*.rs",
-    "src/client/components/*.rs",
-    "--out-file",
-    "generated/uno-building.css",
-]
-
 [tasks.move-to-generated]
 script = '''
-    rm -rf generated/wasm generated/uno.css
+    rm -rf generated/wasm 
     mv generated/wasm-building generated/wasm
-    mv generated/uno-building.css generated/uno.css
 '''

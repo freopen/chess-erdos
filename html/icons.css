@@ -1,0 +1,8 @@
+@define-mixin icon $set, $name {
+    .i-$(set)-$(name):after {
+        content: url("https://api.iconify.design/$(set)/$(name).svg");
+    }
+}
+
+@mixin icon fa6-solid, chess-king;
+@mixin icon fa6-solid, hashtag;

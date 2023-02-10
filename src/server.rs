@@ -48,7 +48,7 @@ pub async fn serve() -> Result<()> {
 
     let result = tokio::select! {
       v = http::serve(&db) => v,
-      v = process_archive::process_new_archives_task(&db) => v,
+    //   v = process_archive::process_new_archives_task(&db) => v,
     };
 
     opentelemetry::global::shutdown_tracer_provider();

@@ -1,0 +1,10 @@
+@import "icons.css";
+
+body {
+    display: flex;
+    justify-content: center;
+}
+
+#main {
+    max-width: 800px;
+}
