@@ -9,7 +9,7 @@ mod user;
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         Router {
-            // layout::Layout {
+            layout::Layout {
                 Route {
                     to: "/",
                     home::Home {}
@@ -18,19 +18,19 @@ pub fn app(cx: Scope) -> Element {
                     to: "/@/:id",
                     user::UserPage {}
                 }
-                // Route {
-                //     to: "/@/:id/:erdos_num",
-                //     user::UserPage {}
-                // }
-                // Route {
-                //     to: "/@/:id/:erdos_num/:path_id",
-                //     user::UserPage {}
-                // }
+                Route {
+                    to: "/@/:id/:erdos_num",
+                    user::UserPage {}
+                }
+                Route {
+                    to: "/@/:id/:erdos_num/:path_id",
+                    user::UserPage {}
+                }
                 Redirect {
                     from: ""
                     to: "/"
                 }
-            // }
+            }
         }
     })
 }

@@ -8,15 +8,14 @@ pub fn Layout<'a>(cx: Scope<'a>, children: Element<'a>) -> Element {
         div {
             header {
                 Link {
+                    id: "home",
                     to: "/",
                     span {
-                        class: "i-fa6-solid:chess-king",
-                    }
-                    span {
-                        class: "i-fa6-solid:hashtag",
+                        class: "i-fa6-solid-house",
                     }
                 }
                 input {
+                    id: "username_input",
                     "type": "text",
                     placeholder: "Enter lichess username",
                     oninput: move |e| {

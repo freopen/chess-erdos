@@ -1,0 +1,21 @@
+body {
+    display: flex;
+    justify-content: center;
+
+    & #main {
+        max-width: 40rem;
+    }
+}
+
+header {
+    display: flex;
+    flex-wrap: nowrap;
+
+    & #home {
+        padding: 0.5rem;
+     }
+
+    & input {
+        flex-grow: 1;
+    }
+}
