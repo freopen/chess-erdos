@@ -31,15 +31,16 @@
               targets.wasm32-unknown-unknown.latest.rust-std
             ])
         ];
-        buildInputs = with pkgs; [ openssl curl zstd protobuf ];
+        buildInputs = with pkgs; [ openssl curl zstd protobuf strace ];
         LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
         CURL_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
         PROTOC = "${pkgs.protobuf}/bin/protoc";
       } ''
         cp -R $src/* .
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)
-
-        cargo make release
+        export XDG_CACHE_HOME=$(pwd)/$(mktemp -d cache.XXX)
+        echo $XDG_CACHE_HOME
+        strace cargo make release
 
         mkdir -p $out/bin
         cp target/release-server/chess-erdos $out/bin 
