@@ -15,7 +15,6 @@
         src = ./.;
         __noChroot = true;
         nativeBuildInputs = with pkgs; [
-          binaryen
           cargo-make
           clang
           git
@@ -37,10 +36,12 @@
         PROTOC = "${pkgs.protobuf}/bin/protoc";
       } ''
         cp -R $src/* .
+        mkdir -p tmpbin/bin
+        ln -s "$(pkgs.binaryen)/bin/wasm-opt" tmpbin/bin/wasm-opt
+        ln -s "$(pkgs.binaryen)/bin/wasm-opt" tmpbin/wasm-opt
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)
         export XDG_CACHE_HOME=$(pwd)/$(mktemp -d cache.XXX)
-        echo $XDG_CACHE_HOME
-        strace cargo make release
+        cargo make release
 
         mkdir -p $out/bin
         cp target/release-server/chess-erdos $out/bin 
