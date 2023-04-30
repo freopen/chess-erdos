@@ -36,9 +36,11 @@
         PROTOC = "${pkgs.protobuf}/bin/protoc";
       } ''
         cp -R $src/* .
-        mkdir -p tmpbin/bin
-        ln -s "$(pkgs.binaryen)/bin/wasm-opt" tmpbin/bin/wasm-opt
-        ln -s "$(pkgs.binaryen)/bin/wasm-opt" tmpbin/wasm-opt
+        mkdir -p tmpbin/bin/bin
+        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/bin/wasm-opt
+        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/wasm-opt
+        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/wasm-opt
+        export PATH="$(pwd)/tmpbin:$PATH"
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)
         export XDG_CACHE_HOME=$(pwd)/$(mktemp -d cache.XXX)
         cargo make release
