@@ -59,6 +59,24 @@ pub fn Home(cx: Scope) -> Element {
             }
             last_processed_block
             Header {
+                "(NEW) Now that Ding Liren won World Chess Championship 2023, will the website be "
+                "updated to build chains starting from the current World Champion?"
+            }
+            Paragraph{
+                "As far as I know there are no public Lichess accounts of Ding Liren. Once there "
+                "is a public account, the website will be updated to build chains starting from "
+                "the current World Champion."
+            }
+            Header {
+                "(NEW) But Magnus Carlsen haven't lost to the current champion and still "
+                "holds #1 FIDE rating..."
+            }
+            Paragraph{
+                "I feel that many people would like to be able to keep tracking their Magnus "
+                "Carlsen number. So I intend to have both numbers updated while Magnus Carlsen "
+                "maintains his #1 FIDE classical rating."
+            }
+            Header {
                 "What is the World Chess Champion Number?"
             }
             Paragraph {
