@@ -81,6 +81,7 @@
             wantedBy = [ "multi-user.target" ];
             after = [ "network-online.target" ];
             wants = [ "network-online.target" ];
+            startLimitIntervalSec = 0;
             path = with pkgs; [ curl zstd ];
             serviceConfig = {
               User = "chess_erdos";
@@ -89,6 +90,7 @@
               StateDirectory = "chess_erdos";
               StateDirectoryMode = "0700";
               Restart = "always";
+              RestartSec = 60;
             };
           };
         };
