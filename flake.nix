@@ -15,6 +15,7 @@
         src = ./.;
         __noChroot = true;
         nativeBuildInputs = with pkgs; [
+          binaryen
           cargo-make
           clang
           git
