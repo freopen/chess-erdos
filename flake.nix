@@ -37,6 +37,7 @@
         PROTOC = "${pkgs.protobuf}/bin/protoc";
       } ''
         cp -R $src/* .
+        echo 'cafile = /etc/ssl/certs/ca-bundle.crt' > .npmrc
         mkdir -p tmpbin/bin/bin
         ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/bin/wasm-opt
         ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/wasm-opt
