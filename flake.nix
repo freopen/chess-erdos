@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,11 +38,6 @@
       } ''
         cp -R $src/* .
         echo 'cafile = /etc/ssl/certs/ca-bundle.crt' > .npmrc
-        mkdir -p tmpbin/bin/bin
-        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/bin/wasm-opt
-        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/bin/wasm-opt
-        ln -s "${pkgs.binaryen}/bin/wasm-opt" tmpbin/wasm-opt
-        export PATH="$(pwd)/tmpbin:$PATH"
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)
         export XDG_CACHE_HOME=$(pwd)/$(mktemp -d cache.XXX)
         cargo make release
