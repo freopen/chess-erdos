@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 rmp-serde = "1.1.0"
-rocksdb = { version = "0.19.0", features = ["zstd"], default-features=false }
+rocksdb = { version = "0.22.0", features = ["zstd"], default-features = false }
 serde = "1.0.137"
 thiserror = "1.0.31"
