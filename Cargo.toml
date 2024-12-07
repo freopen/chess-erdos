@@ -21,7 +21,7 @@ reqwest = { version = "0.11.10", features = [
 ], default-features = false }
 rmp-serde = "1.1.0"
 serde = { version = "1.0.137", features = ["derive"] }
-wasm-bindgen = "=0.2.92"
+wasm-bindgen = "=0.2.95"
 wasm-logger = "0.2.0"
 
 [target.'cfg(unix)'.dependencies]
@@ -58,7 +58,7 @@ lto = true
 codegen-units = 1
 
 [package.metadata.wasm-pack.profile.release]
-# wasm-opt = false
+wasm-opt = ["-Os", "--enable-bulk-memory"]
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true
