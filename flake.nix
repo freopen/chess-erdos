@@ -32,7 +32,7 @@
               nodePackages.pnpm
               pkg-config
               protobuf
-              wasm-bindgen-cli
+              wasm-bindgen-cli_0_2_104
               wasm-pack
               (
                 with fenix.packages."x86_64-linux";
