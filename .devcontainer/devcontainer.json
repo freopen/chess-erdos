@@ -1,0 +1,35 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+    "name": "Chess Erdos",
+    // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    "features": {
+        "ghcr.io/devcontainers/features/rust": {
+            "profile": "default",
+            "targets": ["wasm32-unknown-unknown"]
+        },
+        "ghcr.io/devcontainers/features/node": {},
+        "ghcr.io/devcontainers/features/nix": {
+            "multiUser": true,
+            "version": "latest",
+            "extraNixConfig": "experimental-features = nix-command flakes"
+        }
+    },
+    "onCreateCommand": "nix-env -iA nixpkgs.nixd nixpkgs.nixfmt",
+    "runArgs": ["--userns=keep-id"],
+    "remoteUser": "vscode",
+    "containerUser": "vscode",
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/home/vscode/.local/state/nix/profiles/profile/bin"
+    }
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+    // Use 'postCreateCommand' to run commands after the container is created.
+    // "postCreateCommand": "pip3 install --user -r requirements.txt",
+    // Configure tool-specific properties.
+    // "customizations": {},
+    // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+    // "remoteUser": "root"
+}

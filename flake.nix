@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -29,9 +29,10 @@
               esbuild
               git
               nodejs
-              nodePackages.pnpm
+              pnpm
               pkg-config
               protobuf
+              rustPlatform.bindgenHook
               wasm-bindgen-cli_0_2_104
               wasm-pack
               (
@@ -50,9 +51,9 @@
               protobuf
               strace
             ];
-            LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
             CURL_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
             PROTOC = "${pkgs.protobuf}/bin/protoc";
+            LD_LIBRARY_PATH = "${pkgs.libclang.lib}/lib";
           }
           ''
             cp -R $src/* .
@@ -62,6 +63,10 @@
             export XDG_CACHE_HOME=$(mktemp -d cache.XXX)
             export XDG_DATA_HOME=$(mktemp -d data.XXX)
             export WASM_PACK_CACHE=$(mktemp -d wasm-pack-cache.XXX)
+            cat > pnpm-workspace.yaml << 'EOF'
+            allowBuilds:
+              esbuild: true
+            EOF
             cargo make release
 
             mkdir -p $out/bin
